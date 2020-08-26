@@ -1,0 +1,71 @@
+#!/bin/sh
+
+echo "=============================================="
+echo "Unpacking and compiling HSL libraries..."
+echo "=============================================="
+
+# Linux native OpenBLAS
+BLAS="-lopenblas"
+
+METIS="./../metis/metis-4.0.3"
+
+if [ -s "$METIS/libmetis.a" ]; then
+   METISFLAG="--with-metis=$METIS/libmetis.a"
+else
+   METISFLAG=""
+fi
+
+if [ -d "hsl_ma57-5.2.0" ]; then
+   # already unzipped
+   (cd hsl_ma57-5.2.0 && ./configure $METISFLAG --with-blas="$BLAS" --prefix=$PWD/compiled CFLAGS=-fPIC FCFLAGS=-fPIC FFLAGS=-fPIC && make && make install)
+else
+   if [ -s "hsl_ma57-5.2.0.tar.gz" ]; then
+      tar -zxf hsl_ma57-5.2.0.tar.gz
+      # apply patch
+      echo
+      echo "===== hsl_ma57-5.2.0 ====="
+      echo
+      (cd hsl_ma57-5.2.0 && patch -s -p0 < ../hsl_ma57.patch)
+      (cd hsl_ma57-5.2.0 && ./configure $METISFLAG --with-blas="$BLAS" --prefix=$PWD/compiled CFLAGS=-fPIC FCFLAGS=-fPIC FFLAGS=-fPIC && make && make install)
+   else
+      echo
+      echo "hsl/hsl_ma57-5.2.0.tar.gz not found!"
+      echo
+   fi
+fi
+
+if [ -d "hsl_ma86-1.6.0" ]; then
+   # already unzipped
+   (cd hsl_ma86-1.6.0 && ./configure $METISFLAG --with-blas="$BLAS" --prefix=$PWD/compiled CFLAGS=-fPIC FCFLAGS=-fPIC FFLAGS=-fPIC && make && make install)
+else
+   if [ -s "hsl_ma86-1.6.0.tar.gz" ]; then
+      tar -zxf hsl_ma86-1.6.0.tar.gz
+      # apply patch
+      echo
+      echo "===== hsl_ma86-1.6.0 ====="
+      echo
+      (cd hsl_ma86-1.6.0 && ./configure $METISFLAG --with-blas="$BLAS" --prefix=$PWD/compiled CFLAGS=-fPIC FCFLAGS=-fPIC FFLAGS=-fPIC && make && make install)
+   else
+      echo
+      echo "hsl_ma86-1.6.0.tar.gz not found!"
+      echo
+   fi
+fi
+
+if [ -d "hsl_ma97-2.5.0" ]; then
+   # already unzipped
+   (cd hsl_ma97-2.5.0 && ./configure $METISFLAG --with-blas="$BLAS" --prefix=$PWD/compiled CFLAGS=-fPIC FCFLAGS=-fPIC FFLAGS=-fPIC && make && make install)
+else
+   if [ -s "hsl_ma97-2.5.0.tar.gz" ]; then
+      tar -zxf hsl_ma97-2.5.0.tar.gz
+      # apply patch
+      echo
+      echo "===== hsl_ma97-2.5.0 ====="
+      echo
+      (cd hsl_ma97-2.5.0 && ./configure $METISFLAG --with-blas="$BLAS" --prefix=$PWD/compiled CFLAGS=-fPIC FCFLAGS=-fPIC FFLAGS=-fPIC && make && make install)
+   else
+      echo
+      echo "hsl/hsl_ma97-2.5.0.tar.gz not found!"
+      echo
+   fi
+fi

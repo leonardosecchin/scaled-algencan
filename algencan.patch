@@ -1,0 +1,719 @@
+diff -Naru ../algencan-3.1.1/Makefile ./Makefile
+--- ../algencan-3.1.1/Makefile	2017-03-10 16:25:44.000000000 -0300
++++ ./Makefile	2020-08-14 15:41:22.301154199 -0300
+@@ -5,21 +5,30 @@
+ # case.
+ AR := ar
+ FC := gfortran
+-CC := gcc-4.9
+-CP := g++-4.9
++CC := gcc
++CP := g++
+ 
+-FFLAGS   := -O3
+-CFLAGS   := -O3
++FFLAGS   := -O3 -fPIC
++CFLAGS   := -O3 -fPIC
+ 
+ # Set variable ALGENCAN with the absolute path of your ALGENCAN installation
+ # directory. The value shown expands to the path of current working directory.
+ ALGENCAN := $(CURDIR)
+ 
++# HSL main directory
++HSL      := $(ALGENCAN)/../hsl
++
++HSL_MA57_SOURCES=$(HSL)/hsl_ma57-5.2.0/src
++HSL_MA86_SOURCES=$(HSL)/hsl_ma86-1.6.0/src
++HSL_MA97_SOURCES=$(HSL)/hsl_ma97-2.5.0/src
++
++# Metis main directory
++METIS    := $(ALGENCAN)/../metis
++
+ BIN      := $(ALGENCAN)/bin
+ LIB      := $(ALGENCAN)/lib
+ SRC      := $(ALGENCAN)/sources
+ ALGSRC   := $(SRC)/algencan
+-HSLSRC   := $(SRC)/hsl
+ INTERSRC := $(SRC)/interfaces
+ INTERFCS := $(notdir $(wildcard $(INTERSRC)/*))
+ 
+@@ -29,39 +38,21 @@
+ # stand-alone Fortran version of ALGENCAN.
+ AMPL     := $(HOME)/ampl
+ 
+-# Set the variables below to 1 if the source files of the BLAS and
+-# LAPACK dependencies of the HSL subroutines were placed within folder
+-# $HSLSRC. Otherwise, set it to 0. In the latter case, it is assumed
+-# that the BLAS and LAPACK libraries exist and that they will be used
+-# in the linking process.
+-BLAS_LAPACK := 1
+-
+-# If you are using HSL_MA86 and/or HSL_MA97 and you want to use
+-# OpenMP, set the OpenMP flag of your compiler. Otherwise, leave it
+-# blank.
+-OPENMPFLAG := -fopenmp
+-# OPENMPFLAG :=
++# OpenBLAS flags
++BLASFLAGS := -lopenblas -lpthread
++OPENMPFLAG := -lpthread -fopenmp
+ 
+ # CUTEst Directories
+-MASTSIF  := $(ALGENCAN)/myfolder/testes
+ #MASTSIF  := $(HOME)/CUTEst/sif
+-#MASTSIF  := $(HOME)/CUTEst/sif/netlib
+-#MASTSIF  := $(HOME)/CUTEr/MastSIF/marosmeszaros
+ ARCHDEFS  := $(HOME)/CUTEst/archdefs
+ SIFDECODE := $(HOME)/CUTEst/sifdecode
+ CUTEST    := $(HOME)/CUTEst/cutest
+-MYARCH    := mac64.osx.gfo
++MYARCH    := pc64.lnx.gfo
+ 
+ # Stop your modifications here.
+ 
+ export
+ 
+-ifeq ($(BLAS_LAPACK),1)
+-  HSL_MAKEFILE := Makefile.1
+-else
+-  HSL_MAKEFILE := Makefile.2
+-endif
+-
+ all: algencan
+ 
+ algencan: hsl
+@@ -70,16 +61,18 @@
+ algencan-%: algencan
+ 	$(MAKE) -C $(INTERSRC)/$* all install
+ 
+-hsl:
+-	$(MAKE) -f $(HSL_MAKEFILE) -C $(HSLSRC)
++hsl: metis
++	(cd $(HSL) && ./compile)
++
++metis:
++	(cd $(METIS) && ./compile)
+ 
+ clean:
+ 	$(MAKE) -C $(ALGSRC) clean
+-	$(MAKE) -f $(HSL_MAKEFILE) -C $(HSLSRC) clean
++	@rm -rdf $(HSL)/hsl_ma57-5.2.0 $(HSL)/hsl_ma86-1.6.0 $(HSL)/hsl_ma97-2.5.0 $(METIS)/metis-4.0.3
+ 	$(foreach i,$(INTERFCS),$(MAKE) -C $(INTERSRC)/$(i) clean;)
+ 
+ distclean: clean
+-	$(MAKE) -f $(HSL_MAKEFILE) -C $(HSLSRC) distclean
+ 	$(foreach i,$(INTERFCS),$(MAKE) -C $(INTERSRC)/$(i) distclean;)
+ 
+ .PHONY: all clean distclean algencan*
+diff -Naru ../algencan-3.1.1/sources/algencan/algencan.f90 ./sources/algencan/algencan.f90
+--- ../algencan-3.1.1/sources/algencan/algencan.f90	2017-03-10 16:05:18.000000000 -0300
++++ ./sources/algencan/algencan.f90	2020-08-14 14:13:38.793124000 -0300
+@@ -207,6 +207,10 @@
+   call setalgparam(val_innercall = .false.)
+   call setalgparam(val_useustp   = .false.)
+ 
++  ! Scaled Algencan parameters default values
++  call setalgparam(val_optscale = .false.)
++  call setalgparam(val_maxoptscalefactor = 1.0d20)
++
+   ! ==================================================================
+   ! Open output file
+   ! ==================================================================
+diff -Naru ../algencan-3.1.1/sources/algencan/auglag.f90 ./sources/algencan/auglag.f90
+--- ../algencan-3.1.1/sources/algencan/auglag.f90	2015-11-06 16:04:00.000000000 -0200
++++ ./sources/algencan/auglag.f90	2020-08-14 17:11:11.363130512 -0300
+@@ -8,7 +8,8 @@
+ 
+   use modmachconst
+   use modalgconst
+-  use modalgparam, only: setalgparam,skipacc,maxoutitgiven,maxinnitgiven,rhoinigiven,rhomaxgiven
++  use modalgparam, only: setalgparam,skipacc,maxoutitgiven,maxinnitgiven, &
++     rhoinigiven,rhomaxgiven,optscale,maxoptscalefactor
+   use modouttyp
+   use probgiven, only: seconde
+   use problvls, only: setproblvls,ssetp,sevalobjc,scale,sc,sf
+@@ -52,6 +53,7 @@
+   ! 0: Feasibility, optimality and complementarity satisfied
+   ! 2: Too large penalty parameter. Infeasible problem?
+   ! 3: Maximum number of algencan iterations reached
++  ! 4: Feasibility, scaled optimality and scaled complementarity satisfied
+ 
+   ! LOCAL SCALARS
+   character :: innstp
+@@ -60,7 +62,7 @@
+        outitnp,xind
+   real(kind=8) :: al,csupna,epsfeas12,epsfeas14,epsopt12,epsopt14, &
+        epsopk,fa,nlpi,nlpsupna,rhoa,rhob,rhoc,rhoini,snormb, &
+-       snormprev,xsupn
++       snormprev,xsupn,optscalefactor,nlpsupnscale
+ 
+   ! LOCAL ARRAYS
+   real(kind=8) :: c(m),cu(m),lambar(m),lambdaa(m),lambdab(m),nc(n), &
+@@ -101,6 +103,8 @@
+   ! Initialization
+   ! ==================================================================
+ 
++  optscalefactor = 1.0d0
++
+   ! Counters
+ 
+   outiter  = 0
+@@ -173,6 +177,9 @@
+      end if
+   end do
+ 
++  ! initial nlpsupnscale (only has effect when optscale = 1)
++  nlpsupnscale = nlpsupn
++
+   ! Compute continuous projected Lagrangian gradient norm
+ 
+   call sevalnl(n,x,m,lambda,equatn,linear,nl,inform)
+@@ -239,17 +246,17 @@
+         if ( outiter .eq. 0 ) then
+            write(* ,1041) outiter,      f,csupn,snorm,nlpsupn, &
+                           xsupn,ncsupn,totiter,innstp,nwcalls, &
+-                          nwtotit
++                          nwtotit,optscalefactor
+            write(10,1041) outiter,      f,csupn,snorm,nlpsupn, &
+                           xsupn,ncsupn,totiter,innstp,nwcalls, &
+-                          nwtotit
++                          nwtotit,optscalefactor
+         else
+            write(* ,1040) outiter,rsupn,f,csupn,snorm,nlpsupn, &
+                           xsupn,ncsupn,totiter,innstp,nwcalls, &
+-                          nwtotit
++                          nwtotit,optscalefactor
+            write(10,1040) outiter,rsupn,f,csupn,snorm,nlpsupn, &
+                           xsupn,ncsupn,totiter,innstp,nwcalls, &
+-                          nwtotit
++                          nwtotit,optscalefactor
+         end if
+      else
+         if ( mod(outiter,10) .eq. 0 ) then
+@@ -260,17 +267,17 @@
+         if ( outiter .eq. 0 ) then
+            write(* ,1061) outiter,      fu,csupnu,f,csupn,snorm, &
+                           nlpsupn,ncsupn,totiter,innstp,nwcalls, &
+-                          nwtotit
++                          nwtotit,optscalefactor
+            write(10,1061) outiter,      fu,csupnu,f,csupn,snorm, &
+                           nlpsupn,ncsupn,totiter,innstp,nwcalls, &
+-                          nwtotit
++                          nwtotit,optscalefactor
+         else
+            write(* ,1060) outiter,rsupn,fu,csupnu,f,csupn,snorm, &
+                           nlpsupn,ncsupn,totiter,innstp,nwcalls, &
+-                          nwtotit
++                          nwtotit,optscalefactor
+            write(10,1060) outiter,rsupn,fu,csupnu,f,csupn,snorm, &
+                           nlpsupn,ncsupn,totiter,innstp,nwcalls, &
+-                          nwtotit
++                          nwtotit,optscalefactor
+         end if
+      end if
+ 
+@@ -352,6 +359,21 @@
+      return
+   end if
+ 
++  ! Test feasibility, optimality and complementarity (scaled criterion)
++  if ( optscale ) then
++     if ( max( snorm, csupnu ) .le. epsfeas .and. &
++         nlpsupnscale .le. epsopt ) then
++         alinfo = 4
++
++         if ( iprintout .ge. 1 ) then
++             write(*, 1301)
++             write(10,1301)
++         end if
++
++         return
++     end if
++  end if
++
+   ! Test whether we are at an infeasible point that is stationary for
+   ! the sum of the squared infeasibilities
+ 
+@@ -691,8 +713,47 @@
+      lambar(i) = max( lammin, min( lambda(i), lammax ) )
+   end do
+ 
+-  ! Compute complementarity violation
++  ! Compute continuous projected Lagrangian gradient norm
++
++  call sevalnl(n,x,m,lambda,equatn,linear,nl,inform)
++  if ( inform .ne. 0 ) return
+ 
++  nlpsupn = 0.0d0
++  do i = 1,n
++     nlpi = x(i) - nl(i)
++     if ( l(i) .le. nlpi .and. nlpi .le. u(i) ) then
++        nlpi = - nl(i)
++     else
++        nlpi = max( l(i), min( nlpi, u(i) ) ) - x(i)
++     end if
++     nlpsupn = max( nlpsupn, abs( nlpi ) )
++  end do
++  
++  if ( optscale ) then
++	! Scale factor
++	
++	optscalefactor = abs( lambda(1) )
++	do i = 2,m
++		optscalefactor = max(optscalefactor,abs( lambda(i) ))
++	end do
++	
++	optscalefactor = min( max(1.0d0,optscalefactor) , maxoptscalefactor )
++
++	! Compute supnorm of the scaled projected Lagrangian
++	nlpsupnscale = 0.0d0
++	do i = 1,n
++		nlpi = x(i) - nl(i)/optscalefactor
++		if ( l(i) .le. nlpi .and. nlpi .le. u(i) ) then
++			nlpi = - nl(i)/optscalefactor
++		else
++			nlpi = max( l(i), min( nlpi, u(i) ) ) - x(i)
++		end if
++		nlpsupnscale = max( nlpsupnscale, abs( nlpi ) )
++	end do
++  end if
++  
++  ! Compute complementarity violation
++  
+   snormprev = snorm
+ 
+   snorm = 0.0d0
+@@ -712,22 +773,6 @@
+      cifacnt = 0
+   end if
+ 
+-  ! Compute continuous projected Lagrangian gradient norm
+-
+-  call sevalnl(n,x,m,lambda,equatn,linear,nl,inform)
+-  if ( inform .ne. 0 ) return
+-
+-  nlpsupn = 0.0d0
+-  do i = 1,n
+-     nlpi = x(i) - nl(i)
+-     if ( l(i) .le. nlpi .and. nlpi .le. u(i) ) then
+-        nlpi = - nl(i)
+-     else
+-        nlpi = max( l(i), min( nlpi, u(i) ) ) - x(i)
+-     end if
+-     nlpsupn = max( nlpsupn, abs( nlpi ) )
+-  end do
+-
+   ! Compute squared-infeasibility gradient norm
+ 
+   call stafeas(n,x,l,u,m,c,lambda,equatn,nc,ncsupn,inform)
+@@ -778,25 +823,25 @@
+              /,6(1X,1P,D11.4))
+ 
+  1030 format(/,'out',1X,'penalt',2X,'objective',1X,'infeas',1X,'infeas', &
+-               1X,'norm',3X,'norm',3X,'|Grad|',2X,'inner',1X,'Newton',   &
++               1X,'norm',3X,'norm',3X,'|Grad|',2X,'inner',1X,'Newton',,1X,'scale',   &
+              /,'ite',9X,'function',2X,'ibilty',1X,'+compl',1X,'graLag',  &
+-               1X,'point',2X,'infeas',2X,'totit',1X,'forKKT')
++               1X,'point',2X,'infeas',2X,'totit',1X,'forKKT',1X,'factor')
+ 
+  1040 format(I3,1X,1P,D6.0,1X,1P,D10.3,5(1X,1P,D6.0),1X,I5,A1,1X,I2,1X, &
+-             I3)
++             I3,1X,1P,D6.0)
+  1041 format(I3,7X,        1X,1P,D10.3,5(1X,1P,D6.0),1X,I5,A1,1X,I2,1X, &
+-             I3)
++             I3,1X,1P,D6.0)
+ 
+  1050 format(/,'out',1X,'penalt',2X,'objective',1X,'infeas',2X,'scaled', &
+                4X,'scaled',1X,'infeas',1X,'norm',3X,'|Grad|',1X,'inner', &
+-               1X,'Newton',/,'ite',9X,'function',2X,'ibilty',2X,         &
++               1X,'Newton',1X,'scale',/,'ite',9X,'function',2X,'ibilty',2X,         &
+                'obj-funct',1X,'infeas',1X,'+compl',1X,'graLag',1X,       &
+-               'infeas',1X,'totit',1X,'forKKT')
++               'infeas',1X,'totit',1X,'forKKT',1X,'factor')
+ 
+  1060 format(I3,1X,1P,D6.0,1X,1P,D10.3,1X,1P,D6.0,1X,1P,D10.3,4(1X,1P, &
+-             D6.0),I5,A1,1X,I2,1X,I3)
++             D6.0),I5,A1,1X,I2,1X,I3,1X,1P,D6.0)
+  1061 format(I3,7X,        1X,1P,D10.3,1X,1P,D6.0,1X,1P,D10.3,4(1X,1P, &
+-             D6.0),I5,A1,1X,I2,1X,I3)
++             D6.0),I5,A1,1X,I2,1X,I3,1X,1P,D6.0)
+ 
+  1070 format(/,1X,'ALGENCAN OUTER ITERATION                         = ', &
+                I7,                                                       &
+@@ -858,6 +903,7 @@
+  1240 format(/,1X,'Value of the penalty parameter: ',1P,D11.4)
+   
+  1300 format(/,1X,'Flag of ALGENCAN: Solution was found.')
++ 1301 format(/,1X,'Flag of ALGENCAN: Scaled solution was found.')
+  1310 format(/,1X,'Flag of ALGENCAN: It seems that a stationary-of-',    &
+                   'the-infeasibility probably',/,1X,'infeasible point ', &
+                   'was found. Whether the final iterate is a solution ', &
+diff -Naru ../algencan-3.1.1/sources/algencan/fparam.f90 ./sources/algencan/fparam.f90
+--- ../algencan-3.1.1/sources/algencan/fparam.f90	2017-02-01 16:40:31.000000000 -0200
++++ ./sources/algencan/fparam.f90	2020-08-14 14:53:06.002694000 -0300
+@@ -237,7 +237,7 @@
+   character(len=80), intent(in) :: line
+ 
+   ! PARAMETERS
+-  integer, parameter :: nwords = 27
++  integer, parameter :: nwords = 29
+ 
+   ! LOCAL SCALARS
+   logical      :: lss,scl
+@@ -287,6 +287,8 @@
+   data dictionary(25) /'OUTER-ITERATIONS-LIMIT                       '/
+   data dictionary(26) /'PENALTY-PARAMETER-INITIAL-VALUE              '/
+   data dictionary(27) /'LARGEST-PENALTY-PARAMETER-ALLOWED            '/
++  data dictionary(28) /'OPTSCALE                                     '/
++  data dictionary(29) /'OPTSCALE-MAX-FACTOR                          '/
+ 
+   ! Upper-case letter means mandatory extra value. Lowe-case letter means optional
+ 
+@@ -317,6 +319,8 @@
+   data addinfo(25) /'I'/
+   data addinfo(26) /'D'/
+   data addinfo(27) /'D'/
++  data addinfo(28) /' '/
++  data addinfo(29) /'D'/
+ 
+   ! PROCESS LINE
+ 
+@@ -695,6 +699,12 @@
+ 
+   else if ( ikey .eq. 27 ) then
+      call setalgparam(val_rhomaxgiven = dnum)
++
++  else if ( ikey .eq. 28 ) then
++     call setalgparam(val_optscale = .true.)
++
++  else if ( ikey .eq. 29 ) then
++     call setalgparam(val_maxoptscalefactor = dnum)
+   end if
+ 
+   ! RETURN
+diff -Naru ../algencan-3.1.1/sources/algencan/._Makefile ./sources/algencan/._Makefile
+--- ../algencan-3.1.1/sources/algencan/._Makefile	2015-08-19 16:12:48.000000000 -0300
++++ ./sources/algencan/._Makefile	1969-12-31 21:00:00.000000000 -0300
+@@ -1 +0,0 @@
+-    Mac OS X            	   2   y      «                                      ATTR       «   œ                     œ     com.apple.TextEncoding   utf-8;134217984
+\ Nenhum caractere de nova linha no final do arquivo
+diff -Naru ../algencan-3.1.1/sources/algencan/Makefile ./sources/algencan/Makefile
+--- ../algencan-3.1.1/sources/algencan/Makefile	2015-08-19 16:12:48.000000000 -0300
++++ ./sources/algencan/Makefile	2020-08-14 15:15:23.817066687 -0300
+@@ -6,26 +6,39 @@
+    modouttyp.o modminsq.o modmachconst.o modhpredat.o modhappdat.o	\
+    moditetyp.o modalgparam.o modalgconst.o calgencan.o accpro.o
+ 
+-MA57 := $(shell if [ -e $(HSLSRC)/hsl_ma57_double.mod ]; then echo true; fi)
+-MA86 := $(shell if [ -e $(HSLSRC)/hsl_ma86_double.mod ]; then echo true; fi)
+-MA97 := $(shell if [ -e $(HSLSRC)/hsl_ma97_double.mod ]; then echo true; fi)
++MA57 := $(shell if [ -e $(HSL_MA57_SOURCES)/hsl_ma57_double.mod ]; then echo true; fi)
++MA86 := $(shell if [ -e $(HSL_MA86_SOURCES)/hsl_ma86_double.mod ]; then echo true; fi)
++MA97 := $(shell if [ -e $(HSL_MA97_SOURCES)/hsl_ma97_double.mod ]; then echo true; fi)
++
++METISLIB := $(shell if [ -e $(METIS)/metis-4.0.3/libmetis.a ]; then echo true; fi)
++
++ADDHSL :=
+ 
+ ifeq ($(MA57),true)
+-  HSL := lssma57.o
++  ADDHSL := $(ADDHSL)addlib $(HSL_MA57_SOURCES)/../compiled/lib/libhsl_ma57.a\n
++  HSLOBJ := lssma57.o
+ else
+-  HSL := dummy_lssma57.o
++  HSLOBJ := dummy_lssma57.o
+ endif
+ 
+ ifeq ($(MA86),true)
+-  HSL := $(HSL) lssma86.o
++  ADDHSL := $(ADDHSL)addlib $(HSL_MA86_SOURCES)/../compiled/lib/libhsl_ma86.a\n
++  HSLOBJ := $(HSLOBJ) lssma86.o
+ else
+-  HSL := $(HSL) dummy_lssma86.o
++  HSLOBJ := $(HSLOBJ) dummy_lssma86.o
+ endif
+ 
+ ifeq ($(MA97),true)
+-  HSL := $(HSL) lssma97.o
++  ADDHSL := $(ADDHSL)addlib $(HSL_MA97_SOURCES)/../compiled/lib/libhsl_ma97.a
++  HSLOBJ := $(HSLOBJ) lssma97.o
++else
++  HSLOBJ := $(HSLOBJ) dummy_lssma97.o
++endif
++
++ifeq ($(METISLIB),true)
++  ADDMETIS := addlib $(METIS)/metis-4.0.3/libmetis.a
+ else
+-  HSL := $(HSL) dummy_lssma97.o
++  ADDMETIS :=
+ endif
+ 
+ %.o: %.f90
+@@ -34,14 +47,21 @@
+ all: lib
+ 
+ lib: $(ALGENCAN)
+-	$(AR) rcs libalgencan.a $(ALGENCAN) $(HSL)
++	$(AR) rcs libprealgencan.a $(ALGENCAN) $(HSLOBJ)
++	echo "create libalgencan.a" > libalgencan.mri
++	echo "addlib libprealgencan.a" >> libalgencan.mri
++	echo "$(ADDHSL)" >> libalgencan.mri
++	echo "$(ADDMETIS)" >> libalgencan.mri
++	echo "save" >> libalgencan.mri
++	echo "end" >> libalgencan.mri
++	$(AR) M < libalgencan.mri
+ 
+ install:
+-	mv -f libalgencan.a $(LIB)
++	mv -f libprealgencan.a libalgencan.a $(LIB)
+ 
+ algencan.o: algencan.f90 modalgconst.o modalgparam.o modmachconst.o	\
+ 	    modouttyp.o problvls.o problvlt.o problvlu.o problvlv.o	\
+-	    probgiven.o $(HSL)
++	    probgiven.o $(HSLOBJ)
+ 
+ newtonkkt.o: newtonkkt.f90 modalgparam.o modmachconst.o modouttyp.o	\
+ 	     modalgconst.o lss.o problvls.o probgiven.o modminsq.o
+@@ -87,7 +107,7 @@
+ 	  modsvdgrad.o problvls.o problvlv.o probgiven.o
+ 
+ fparam.o: fparam.f90 modalgparam.o modouttyp.o problvls.o problvlt.o	\
+-	  problvlu.o probgiven.o $(HSL)
++	  problvlu.o probgiven.o $(HSLOBJ)
+ 
+ misc.o: misc.f90 modmachconst.o
+ 
+@@ -95,7 +115,7 @@
+ 
+ drand.o: drand.f90
+ 
+-lss.o: lss.f90 $(HSL)
++lss.o: lss.f90 $(HSLOBJ)
+ 
+ dummy_lssma57.o: dummy_lssma57.f90
+ 
+@@ -104,13 +124,13 @@
+ dummy_lssma97.o: dummy_lssma97.f90
+ 
+ lssma57.o: lssma57.f90 modmachconst.o modouttyp.o
+-	$(FC) $(FFLAGS) $(OPENMPFLAG) -I$(HSLSRC) -c -o $@ $<
++	$(FC) $(FFLAGS) $(OPENMPFLAG) -I$(HSL_MA57_SOURCES) -c -o $@ $<
+ 
+ lssma86.o: lssma86.f90 modmachconst.o modouttyp.o
+-	$(FC) $(FFLAGS) $(OPENMPFLAG) -I$(HSLSRC) -c -o $@ $<
++	$(FC) $(FFLAGS) $(OPENMPFLAG) -I$(HSL_MA86_SOURCES) -c -o $@ $<
+ 
+ lssma97.o: lssma97.f90 modmachconst.o modouttyp.o
+-	$(FC) $(FFLAGS) $(OPENMPFLAG) -I$(HSLSRC) -c -o $@ $<
++	$(FC) $(FFLAGS) $(OPENMPFLAG) -I$(HSL_MA97_SOURCES) -c -o $@ $<
+ 
+ memalloc.o: memalloc.f90 modrspace.o modsydat.o modsvdgrad.o	\
+ 	    modsvdhess.o modhappdat.o modhpredat.o modminsq.o
+@@ -159,5 +179,6 @@
+ 	rm -f *.o
+ 	rm -f *.mod
+ 	rm -f $(LIB)/libalgencan.a
++	rm -f $(LIB)/libprealgencan.a
+ 
+ .PHONY: all clean
+diff -Naru ../algencan-3.1.1/sources/algencan/modalgparam.f90 ./sources/algencan/modalgparam.f90
+--- ../algencan-3.1.1/sources/algencan/modalgparam.f90	2015-05-05 10:45:12.000000000 -0300
++++ ./sources/algencan/modalgparam.f90	2020-08-14 11:30:33.874468000 -0300
+@@ -7,9 +7,10 @@
+   character(len=4), protected :: precond,lsssubACC,lsssubNW,lsssubTR, &
+        sclsubACC,sclsubNW,sclsubTR
+   character(len=2), protected :: innslvr
+-  logical, protected :: innercall,ignoref,skipacc,useustp
++  logical, protected :: innercall,ignoref,skipacc,useustp,optscale
+   integer, protected :: maxaccitgiven,maxinnitgiven,maxoutitgiven
+-  real (kind=8), protected :: rhoinigiven,rhomaxgiven
++  real (kind=8), protected :: rhoinigiven,rhomaxgiven,&
++       maxoptscalefactor
+ 
+   ! SUBROUTINES
+   public :: setalgparam
+@@ -22,7 +23,8 @@
+   subroutine setalgparam(val_hptype,val_precond,val_lsssubACC,val_lsssubNW, &
+        val_lsssubTR,val_sclsubACC,val_sclsubNW,val_sclsubTR,val_innslvr, &
+        val_innercall,val_ignoref,val_skipacc,val_useustp,val_maxaccitgiven, &
+-       val_maxinnitgiven,val_maxoutitgiven,val_rhoinigiven,val_rhomaxgiven)
++       val_maxinnitgiven,val_maxoutitgiven,val_rhoinigiven,val_rhomaxgiven, &
++       val_optscale,val_maxoptscalefactor)
+ 
+     implicit none
+ 
+@@ -31,10 +33,11 @@
+          val_lsssubNW,val_lsssubTR,val_sclsubACC,val_sclsubNW,val_sclsubTR
+     character(len=2), intent(in), optional :: val_innslvr
+     logical, intent(in), optional :: val_innercall,val_ignoref,val_skipacc, &
+-         val_useustp
++         val_useustp,val_optscale
+     integer, intent(in), optional :: val_maxaccitgiven,val_maxinnitgiven, &
+          val_maxoutitgiven
+-    real (kind=8), intent(in), optional :: val_rhoinigiven,val_rhomaxgiven
++    real (kind=8), intent(in), optional :: val_rhoinigiven,val_rhomaxgiven, &
++         val_maxoptscalefactor
+ 
+     if ( present( val_hptype        ) ) hptype        = val_hptype       
+     if ( present( val_precond       ) ) precond       = val_precond      
+@@ -53,7 +56,9 @@
+     if ( present( val_maxinnitgiven ) ) maxinnitgiven = val_maxinnitgiven
+     if ( present( val_maxoutitgiven ) ) maxoutitgiven = val_maxoutitgiven
+     if ( present( val_rhoinigiven   ) ) rhoinigiven   = val_rhoinigiven  
+-    if ( present( val_rhomaxgiven   ) ) rhomaxgiven   = val_rhomaxgiven  
++    if ( present( val_rhomaxgiven   ) ) rhomaxgiven   = val_rhomaxgiven
++    if ( present( val_optscale      ) ) optscale      = val_optscale
++    if ( present( val_maxoptscalefactor ) ) maxoptscalefactor = val_maxoptscalefactor
+ 
+   end subroutine setalgparam
+ 
+diff -Naru ../algencan-3.1.1/sources/algencan/problvlv.f90 ./sources/algencan/problvlv.f90
+--- ../algencan-3.1.1/sources/algencan/problvlv.f90	2016-03-11 13:37:05.000000000 -0300
++++ ./sources/algencan/problvlv.f90	2020-08-14 12:04:13.483253000 -0300
+@@ -1111,9 +1111,12 @@
+ 
+     ! FUNCTIONS
+     logical :: IsANumber
++    
+ 
+     if ( gjaccoded ) then
+ 
++       inform = 1
++       
+        call evalgjac(n,x,g,m,jcfun,jcvar,jcval,jcnnz,lim,lmem,flag)
+ 
+        egjccnt = egjccnt + 1
+@@ -1195,6 +1198,8 @@
+              end if
+           end if
+        end do
++       
++       inform = 0 ! at this point, the routine was successful
+ 
+     else
+        call ivevalgjac(n,x,g,m,jcfun,jcvar,jcval,jcnnz,lim,inform)
+diff -Naru ../algencan-3.1.1/sources/hsl/README ./sources/hsl/README
+--- ../algencan-3.1.1/sources/hsl/README	1969-12-31 21:00:00.000000000 -0300
++++ ./sources/hsl/README	2020-08-14 15:19:31.586972740 -0300
+@@ -0,0 +1,2 @@
++This is the folder for the HSL packages in the original Algencan 3.1.1.
++It is no longer used. See the new instructions for compiling HSL packages.
+diff -Naru ../algencan-3.1.1/sources/interfaces/ampl/._amplwrapper.c ./sources/interfaces/ampl/._amplwrapper.c
+--- ../algencan-3.1.1/sources/interfaces/ampl/._amplwrapper.c	2017-03-10 15:49:37.000000000 -0300
++++ ./sources/interfaces/ampl/._amplwrapper.c	1969-12-31 21:00:00.000000000 -0300
+@@ -1,2 +0,0 @@
+-    Mac OS X            	   2  …     ·                                      ATTR      ·   Ü  Û                  Ü   5  )com.apple.metadata:kMDItemDownloadedDate     ¦  %com.apple.metadata:kMDItemWhereFroms bplist00¡3A½Ëdÿßn
+-                            bplist00¢_Mhttps://mail-attachment.googleusercontent.com/attachment/u/0/?ui=2&ik=b72c389e7d&view=att&th=15821df4f87d14d4&attid=0.1&disp=safe&realattid=f_iv010tti0&zw&saddbat=ANGjdJ9Eatsd3EpzLFyo7x_XoW1fW3fStaF_aNBVj5-K95CKhI5EXyskZHw1OwHKhQe-HoTC-M3Yl6d8gEeG5gSh_m1u_F1g0i0Ywdpx-VVtZzCpEWBR0tTJcGu-DlflqTZze_r5vKVngEMlQHfI5-g7eTe-OLEwZX0yI89FLFWx4FJJ3dItSKFtRCetiD008AkcjV-YiNvjKl5xZBGR5v_rKz-ypB31qWCI8TZx8ZT1jpqPPScpQrAJ4I5G0mxWjgRg6ZwANIuOBSf1kh5Od2eljCx8XomT7sRP2tBGMOLbtkq9wZQLDwkZs9HBuHOVze_bC9a9JL-k2tnnjZnGWT-LNgHx9oYgmrXnuifwjM7Hyhjo0U3AL_N5rLojkbmlVTe0EU0M6JQJcHGNeUQ5_EoFnM9ioCWs9GbpgkCI6vmRt0FGfdhm2nHXNZfA2uw81nO8idrTooAmkc_yGnfAMB1SI4zOronQT2AGhL94vh7UsQ_UsKr-fIWlEh5gT-Vtxs3yQeT8_rYBOYHzQv3_bzsC5Cw24t8mjcVkFKh8F54TWL4zZ411jABVmGF3FsMAeXK39CfbLuuR1dWI707apy3DQdh13OmRuUzcmtppUQrejgzXaxN0jsuTJMaLAZoPh_8emquuxtququN7ywPxumwSJaOhTihOXg5P09vGNw_!https://mail.google.com/mail/u/0/  \                           €
+\ Nenhum caractere de nova linha no final do arquivo
+diff -Naru ../algencan-3.1.1/sources/interfaces/ampl/amplwrapper.c ./sources/interfaces/ampl/amplwrapper.c
+--- ../algencan-3.1.1/sources/interfaces/ampl/amplwrapper.c	2017-03-10 15:49:37.000000000 -0300
++++ ./sources/interfaces/ampl/amplwrapper.c	2020-08-14 11:46:42.653756000 -0300
+@@ -936,6 +936,9 @@
+   }
+ 
+   inip(&n,&x,&l,&u,&m,&lambda,&equatn,&linear,&hnnzmax,&jcnnzmax);
++  
++  /* Increases jcnnzmax to avoid observed errors */
++  jcnnzmax = m*n;
+ 
+   /* CALL ALGENCAN */
+   c_algencan(&amplf,&amplg,&amplh,&amplc,&ampljac,&amplhc,&amplfc,
+diff -Naru ../algencan-3.1.1/sources/interfaces/ampl/Makefile ./sources/interfaces/ampl/Makefile
+--- ../algencan-3.1.1/sources/interfaces/ampl/Makefile	2013-12-18 11:21:52.000000000 -0200
++++ ./sources/interfaces/ampl/Makefile	2020-08-14 11:48:24.230948000 -0300
+@@ -1,26 +1,17 @@
+ BIN ?= $(CURDIR)
+ DIR := $(notdir $(CURDIR))
+ 
+-# Check for the availability of the HSL library
+-HSL := $(shell if [ -e $(LIB)/libhsl.a ]; then echo true; fi)
+-
+-ifeq ($(HSL),true)
+-  LIBHSL := $(LIB)/libhsl.a
+-else
+-  LIBHSL :=
+-endif
+-
+ all: algencan
+ 
+ algencan: lib-ampl
+-	$(CC) $(CFLAGS) -I$(AMPL)/solvers amplwrapper.o amplsetp.o $(AMPL)/solvers/amplsolver.a libalgencan.a $(LIBHSL) -ldl -lm -lgfortran -fopenmp -o $@
++	$(CC) $(CFLAGS) -Xlinker -zmuldefs -I$(AMPL) amplwrapper.o amplsetp.o $(AMPL)/amplsolver.a libalgencan.a -W -ldl -lm -lgfortran -o $@ $(BLASFLAGS)
+ 
+ lib-ampl: amplwrapper.o amplsetp.o
+ 	cp $(LIB)/libalgencan.a ./libalgencan.a
+ 	$(AR) d libalgencan.a setpoint.o
+ 
+ amplwrapper.o: amplwrapper.c
+-	$(CC) $(CFLAGS) -I$(AMPL)/solvers -c amplwrapper.c
++	$(CC) $(CFLAGS) -I$(AMPL) -c amplwrapper.c
+ 
+ amplsetp.o: amplsetp.f90
+ 	$(FC) $(FFLAGS) -c -o $@ $<
+@@ -32,6 +23,6 @@
+ 	rm -f amplwrapper.o amplsetp.o libalgencan.a
+ 
+ distclean: clean
+-	rm -f $(BIN)/$(DIR)/algencan
++	rm -f $(BIN)/$(DIR)/algencan_scaled
+ 
+ .PHONY: all install clean distclean
+diff -Naru ../algencan-3.1.1/sources/interfaces/cutest/cutestwrapper.f90 ./sources/interfaces/cutest/cutestwrapper.f90
+--- ../algencan-3.1.1/sources/interfaces/cutest/cutestwrapper.f90	2015-08-14 10:23:16.000000000 -0300
++++ ./sources/interfaces/cutest/cutestwrapper.f90	2020-08-14 11:37:42.660799000 -0300
+@@ -730,7 +730,11 @@
+   eoacc     = sqrt( epsopt )
+ 
+   outputfnm = ''
+-  specfnm   = 'algencan.dat'
++  if ( command_argument_count() .ge. 1 ) then
++    call get_command_argument(1,specfnm)
++  else
++    specfnm = 'algencan.dat'
++  end if
+ 
+   nvparam = 0
+ 
+@@ -742,6 +746,8 @@
+        l,u,m,lambda,equatn,linear,coded,checkder,f,cnorm,snorm,nlpsupn, &
+        inform)
+ 
++  call CUTEST_cterminate(allocstat)
++  
+   deallocate(x,l,u,lambda,equatn,linear,ca,cb,ccor,cmap,slaind,stat=allocstat)
+   if ( allocstat .ne. 0 ) then
+      write(*,*) 'In the CUTEST interface main file, allocation error.'
+diff -Naru ../algencan-3.1.1/sources/interfaces/cutest/Makefile ./sources/interfaces/cutest/Makefile
+--- ../algencan-3.1.1/sources/interfaces/cutest/Makefile	2015-08-14 12:53:29.000000000 -0300
++++ ./sources/interfaces/cutest/Makefile	2020-08-14 15:16:04.313379773 -0300
+@@ -2,18 +2,13 @@
+ DIR := $(notdir $(CURDIR))
+ SIF := ELFUN EXTER GROUP RANGE
+ 
+-# Check for the availability of the HSL library
+-HSL := $(shell if [ -e $(LIB)/libhsl.a ]; then echo true; fi)
+-
+ # Decide which linking flags are necessary to use
+-LDFLAGS := -lalgencan -lcutest
++LDFLAGS := -lalgencan -lcutest -Xlinker -zmuldefs $(BLASFLAGS)
+ 
+-ifeq ($(HSL),true)
+-  LDFLAGS := $(LDFLAGS) -lhsl
++METISLIB := $(shell if [ -e $(METIS)/metis-4.0.3/libmetis.a ]; then echo true; fi)
+ 
+-  ifeq ($(BLAS_LAPACK),0)
+-    LDFLAGS := $(LDFLAGS) -lblas -llapack
+-  endif
++ifeq ($(METISLIB),true)
++  LDFLAGS := $(LDFLAGS) -L$(METIS)/metis-4.0.3 -l:libmetis.a
+ endif
+ 
+ %.o: %.f90
+@@ -27,7 +22,7 @@
+ 	rm -f AUTOMAT.d
+ 
+ algencan: cutestwrapper.o $(addsuffix .o,$(SIF))
+-	$(FC) $^ -L$(CUTEST)/objects/$(MYARCH)/double -L$(LIB) -o $@ $(LDFLAGS) $(OPENMPFLAG)
++	$(FC) $^ -L$(CUTEST)/objects/$(MYARCH)/double -L$(LIB) $(CLNDIRS) -o $@ $(LDFLAGS) $(CLNFLAGS) $(OPENMPFLAG)
+ 
+ cutestwrapper.o: cutestwrapper.f90
+ 	$(FC) $(OPENMPFLAG) $(FFLAGS) -c -o $@ $<

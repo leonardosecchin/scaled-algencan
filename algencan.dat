@@ -1,0 +1,17 @@
+# You can set all usual Algencan parameters. See
+#
+#  E. G. Birgin and J. M. Martínez. "Practical Augmented
+#  Lagrangian Methods for Constrained Optimization", Society
+#  for Industrial and Applied Mathematics, Philadelphia, 2014
+#
+# for details.
+
+
+# To use the scaled algorithm, uncomment the appropriated lines
+# below.
+# The 'OPTSCALE' flag indicates whether scaling is used or not;
+# 'OPTSCALE-MAX-FACTOR' is the maximum value for the optimality
+# scale factor. The default value is 1e+20.
+
+OPTSCALE
+#OPTSCALE-MAX-FACTOR 1e+20

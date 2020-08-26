@@ -1,0 +1,9 @@
+*.tar.gz
+*.tgz
+algencan-3.1.1
+algencan-3.1.1_scale*
+hsl/hsl_ma57-5.2*
+hsl/hsl_ma86-1.6*
+hsl/hsl_ma97-2.5*
+metis/metis*
+algencan-3.1.1-orig.code/algencan-3.1.1.tgz

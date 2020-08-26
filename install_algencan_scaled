@@ -1,0 +1,23 @@
+#!/bin/sh
+
+echo "=============================================="
+echo "  Unpacking Algencan 3.1.1 original code and  "
+echo "   applying patch to the new Algencan 3.1.1   "
+echo "                scaled version                "
+echo "=============================================="
+
+rm -rdf algencan-3.1.1_scaled
+
+(cd algencan-3.1.1-orig.code && tar -zxf algencan-3.1.1.tgz)
+
+mv algencan-3.1.1-orig.code/algencan-3.1.1 algencan-3.1.1_scaled
+
+(cd algencan-3.1.1_scaled && patch -s -p0 < ../algencan.patch)
+
+cp -f algencan.dat README.scaled-Algencan algencan-3.1.1_scaled
+
+echo
+echo "Finished!"
+echo
+echo "The folder 'algencan-3.1.1_scaled' was crated."
+echo

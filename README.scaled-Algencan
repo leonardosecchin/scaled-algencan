@@ -1,0 +1,11 @@
+All instructions contained in the original README file of Algencan 3.1.1
+remain valid, except for the compilation of BLAS, HSL and Metis packages.
+
+The modified Makefile was developed to unpack and compile the HSL and Metis
+packages if they are provided by the user. BLAS routines must be present.
+
+See the README.md file or visit
+
+https://github.com/leonardosecchin/scaled-algencan
+
+for more information.

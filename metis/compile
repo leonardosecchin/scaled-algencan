@@ -1,0 +1,18 @@
+#!/bin/sh
+
+echo "=============================================="
+echo "Unpacking/compiling Metis 4.0.3..."
+echo "=============================================="
+
+if [ -d "metis-4.0.3" ]; then
+   (cd metis-4.0.3 && make COPTIONS=-fPIC)
+else
+   if [ -s "metis-4.0.3.tar.gz" ]; then
+      tar -zxf metis-4.0.3.tar.gz
+      (cd metis-4.0.3 && make COPTIONS=-fPIC)
+   else
+      echo
+      echo "metis/metis-4.0.3.tar.gz not found!"
+      echo
+   fi
+fi
