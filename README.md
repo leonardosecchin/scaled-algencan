@@ -4,7 +4,7 @@
 
 **Scaled Algencan** is a modification of Algencan that implements the additional option of scaling the final solution, as described in
 
-> [R. Andreani, G. Haeser, M.L. Schuverdt, L.D. Secchin, P. J. S. Silva. "On scaled stopping criteria for a safeguarded augmented
+> [R. Andreani, G. Haeser, M.L. Schuverdt, L.D. Secchin, P.J.S. Silva. "On scaled stopping criteria for a safeguarded augmented
 Lagrangian method with theoretical guarantees", 2020.](http://www.optimization-online.org/DB_HTML/2020/08/7985.html)
 
 Scaled Algencan was implemented over the Algencan 3.1.1 code.
@@ -57,7 +57,7 @@ BLAS routines must be provided. The script is prepared to use the native [OpenBL
 
 To run Algencan with scaled stopping criterion, call it with the `OPTSCALE` parameter. You can use the `algencan.dat` file. For the CUTEst interface, just copy this file to the same folder as the Algencan executable file. For AMPL interface, run
 
-> ./algencan specfnm="algencan.dat"
+> ./algencan problem.nl specfnm="algencan.dat"
 
 from the folder where the executable file and `algencan.dat` are located.
 
@@ -71,7 +71,7 @@ This research was supported by "Fundação de Amparo à Pesquisa e Inovação do
 
 If you use this code in your publications, please cite us. For the moment, we only have the manuscript:
 
-> [R. Andreani, G. Haeser, M.L. Schuverdt, L.D. Secchin, P. J. S. Silva. "On scaled stopping criteria for a safeguarded augmented
+> [R. Andreani, G. Haeser, M.L. Schuverdt, L.D. Secchin, P.J.S. Silva. "On scaled stopping criteria for a safeguarded augmented
 Lagrangian method with theoretical guarantees", 2020.](http://www.optimization-online.org/DB_HTML/2020/08/7985.html)
 
 Also, consider citing the Algencan's original reference:
