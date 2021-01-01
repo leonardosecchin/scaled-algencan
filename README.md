@@ -56,9 +56,9 @@ The Scaled Algencan `Makefile` is prepared to unpack and compile HSL and Metis p
 BLAS routines must be provided. The script is prepared to use the native [OpenBLAS](https://www.openblas.net) package. Other/Specific BLAS implementations can be used. In this case, the `BLAS` variable in the `hsl/compile` file must be adjusted accordingly. Indeed, vendor-specific implementations may be recommended for best performance.
 
 To run Algencan with scaled stopping criterion, call it with the `OPTSCALE` parameter. You can use the `algencan.dat` file. For the CUTEst interface, just copy this file to the same folder as the Algencan executable file. For AMPL interface, run
-
-> ./algencan problem.nl specfnm="algencan.dat"
-
+~~~
+./algencan problem.nl specfnm="algencan.dat"
+~~~
 from the folder where the executable file and `algencan.dat` are located.
 
 
