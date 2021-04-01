@@ -19,5 +19,5 @@ cp -f algencan.dat README.scaled-Algencan algencan-3.1.1_scaled
 echo
 echo "Finished!"
 echo
-echo "The folder 'algencan-3.1.1_scaled' was crated."
+echo "The folder 'algencan-3.1.1_scaled' was created."
 echo
