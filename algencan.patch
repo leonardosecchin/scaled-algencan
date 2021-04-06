@@ -1,6 +1,6 @@
-diff -Naru ../algencan-3.1.1/Makefile ./Makefile
+diff -ruN ../algencan-3.1.1/Makefile ./Makefile
 --- ../algencan-3.1.1/Makefile	2017-03-10 16:25:44.000000000 -0300
-+++ ./Makefile	2020-08-14 15:41:22.301154199 -0300
++++ ./Makefile	2020-08-14 15:41:22.301154000 -0300
 @@ -5,21 +5,30 @@
  # case.
  AR := ar
@@ -104,7 +104,7 @@ diff -Naru ../algencan-3.1.1/Makefile ./Makefile
  	$(foreach i,$(INTERFCS),$(MAKE) -C $(INTERSRC)/$(i) distclean;)
  
  .PHONY: all clean distclean algencan*
-diff -Naru ../algencan-3.1.1/sources/algencan/algencan.f90 ./sources/algencan/algencan.f90
+diff -ruN ../algencan-3.1.1/sources/algencan/algencan.f90 ./sources/algencan/algencan.f90
 --- ../algencan-3.1.1/sources/algencan/algencan.f90	2017-03-10 16:05:18.000000000 -0300
 +++ ./sources/algencan/algencan.f90	2020-08-14 14:13:38.793124000 -0300
 @@ -207,6 +207,10 @@
@@ -118,9 +118,9 @@ diff -Naru ../algencan-3.1.1/sources/algencan/algencan.f90 ./sources/algencan/al
    ! ==================================================================
    ! Open output file
    ! ==================================================================
-diff -Naru ../algencan-3.1.1/sources/algencan/auglag.f90 ./sources/algencan/auglag.f90
+diff -ruN ../algencan-3.1.1/sources/algencan/auglag.f90 ./sources/algencan/auglag.f90
 --- ../algencan-3.1.1/sources/algencan/auglag.f90	2015-11-06 16:04:00.000000000 -0200
-+++ ./sources/algencan/auglag.f90	2020-08-14 17:11:11.363130512 -0300
++++ ./sources/algencan/auglag.f90	2021-04-06 19:19:32.023489468 -0300
 @@ -8,7 +8,8 @@
  
    use modmachconst
@@ -233,16 +233,15 @@ diff -Naru ../algencan-3.1.1/sources/algencan/auglag.f90 ./sources/algencan/augl
    ! Test whether we are at an infeasible point that is stationary for
    ! the sum of the squared infeasibilities
  
-@@ -691,8 +713,47 @@
+@@ -691,6 +713,45 @@
       lambar(i) = max( lammin, min( lambda(i), lammax ) )
    end do
  
--  ! Compute complementarity violation
 +  ! Compute continuous projected Lagrangian gradient norm
 +
 +  call sevalnl(n,x,m,lambda,equatn,linear,nl,inform)
 +  if ( inform .ne. 0 ) return
- 
++
 +  nlpsupn = 0.0d0
 +  do i = 1,n
 +     nlpi = x(i) - nl(i)
@@ -253,15 +252,15 @@ diff -Naru ../algencan-3.1.1/sources/algencan/auglag.f90 ./sources/algencan/augl
 +     end if
 +     nlpsupn = max( nlpsupn, abs( nlpi ) )
 +  end do
-+  
++
 +  if ( optscale ) then
 +	! Scale factor
-+	
++
 +	optscalefactor = abs( lambda(1) )
 +	do i = 2,m
 +		optscalefactor = max(optscalefactor,abs( lambda(i) ))
 +	end do
-+	
++
 +	optscalefactor = min( max(1.0d0,optscalefactor) , maxoptscalefactor )
 +
 +	! Compute supnorm of the scaled projected Lagrangian
@@ -276,12 +275,10 @@ diff -Naru ../algencan-3.1.1/sources/algencan/auglag.f90 ./sources/algencan/augl
 +		nlpsupnscale = max( nlpsupnscale, abs( nlpi ) )
 +	end do
 +  end if
-+  
-+  ! Compute complementarity violation
-+  
-   snormprev = snorm
++
+   ! Compute complementarity violation
  
-   snorm = 0.0d0
+   snormprev = snorm
 @@ -712,22 +773,6 @@
       cifacnt = 0
    end if
@@ -310,7 +307,7 @@ diff -Naru ../algencan-3.1.1/sources/algencan/auglag.f90 ./sources/algencan/augl
  
   1030 format(/,'out',1X,'penalt',2X,'objective',1X,'infeas',1X,'infeas', &
 -               1X,'norm',3X,'norm',3X,'|Grad|',2X,'inner',1X,'Newton',   &
-+               1X,'norm',3X,'norm',3X,'|Grad|',2X,'inner',1X,'Newton',,1X,'scale',   &
++               1X,'norm',3X,'norm',3X,'|Grad|',2X,'inner',1X,'Newton',1X,'opt sc',   &
               /,'ite',9X,'function',2X,'ibilty',1X,'+compl',1X,'graLag',  &
 -               1X,'point',2X,'infeas',2X,'totit',1X,'forKKT')
 +               1X,'point',2X,'infeas',2X,'totit',1X,'forKKT',1X,'factor')
@@ -325,7 +322,7 @@ diff -Naru ../algencan-3.1.1/sources/algencan/auglag.f90 ./sources/algencan/augl
   1050 format(/,'out',1X,'penalt',2X,'objective',1X,'infeas',2X,'scaled', &
                 4X,'scaled',1X,'infeas',1X,'norm',3X,'|Grad|',1X,'inner', &
 -               1X,'Newton',/,'ite',9X,'function',2X,'ibilty',2X,         &
-+               1X,'Newton',1X,'scale',/,'ite',9X,'function',2X,'ibilty',2X,         &
++               1X,'Newton',1X,'opt sc',/,'ite',9X,'function',2X,'ibilty',2X,         &
                 'obj-funct',1X,'infeas',1X,'+compl',1X,'graLag',1X,       &
 -               'infeas',1X,'totit',1X,'forKKT')
 +               'infeas',1X,'totit',1X,'forKKT',1X,'factor')
@@ -339,15 +336,27 @@ diff -Naru ../algencan-3.1.1/sources/algencan/auglag.f90 ./sources/algencan/augl
  
   1070 format(/,1X,'ALGENCAN OUTER ITERATION                         = ', &
                 I7,                                                       &
-@@ -858,6 +903,7 @@
+@@ -856,8 +901,9 @@
+                   'because its value seems to be preventing ',    &
+                   'convergence of the inner solver.')
   1240 format(/,1X,'Value of the penalty parameter: ',1P,D11.4)
-   
+-  
++
   1300 format(/,1X,'Flag of ALGENCAN: Solution was found.')
 + 1301 format(/,1X,'Flag of ALGENCAN: Scaled solution was found.')
   1310 format(/,1X,'Flag of ALGENCAN: It seems that a stationary-of-',    &
                    'the-infeasibility probably',/,1X,'infeasible point ', &
                    'was found. Whether the final iterate is a solution ', &
-diff -Naru ../algencan-3.1.1/sources/algencan/fparam.f90 ./sources/algencan/fparam.f90
+@@ -888,7 +934,7 @@
+ ! ******************************************************************
+ 
+ subroutine comprhoini(f,m,c,equatn,rhoini)
+-  
++
+   use modmachconst
+ 
+   implicit none
+diff -ruN ../algencan-3.1.1/sources/algencan/fparam.f90 ./sources/algencan/fparam.f90
 --- ../algencan-3.1.1/sources/algencan/fparam.f90	2017-02-01 16:40:31.000000000 -0200
 +++ ./sources/algencan/fparam.f90	2020-08-14 14:53:06.002694000 -0300
 @@ -237,7 +237,7 @@
@@ -390,15 +399,21 @@ diff -Naru ../algencan-3.1.1/sources/algencan/fparam.f90 ./sources/algencan/fpar
    end if
  
    ! RETURN
-diff -Naru ../algencan-3.1.1/sources/algencan/._Makefile ./sources/algencan/._Makefile
---- ../algencan-3.1.1/sources/algencan/._Makefile	2015-08-19 16:12:48.000000000 -0300
-+++ ./sources/algencan/._Makefile	1969-12-31 21:00:00.000000000 -0300
-@@ -1 +0,0 @@
--    Mac OS X            	   2   y      «                                      ATTR       «   œ                     œ     com.apple.TextEncoding   utf-8;134217984
-\ Nenhum caractere de nova linha no final do arquivo
-diff -Naru ../algencan-3.1.1/sources/algencan/Makefile ./sources/algencan/Makefile
+diff -ruN ../algencan-3.1.1/sources/algencan/libalgencan.mri ./sources/algencan/libalgencan.mri
+--- ../algencan-3.1.1/sources/algencan/libalgencan.mri	1969-12-31 21:00:00.000000000 -0300
++++ ./sources/algencan/libalgencan.mri	2021-04-06 19:20:05.199331555 -0300
+@@ -0,0 +1,8 @@
++create libalgencan.a
++addlib libprealgencan.a
++addlib /home/leonardo/PESQUISA/scaled-algencan/algencan-3.1.1_scaled_PARA_FAZER_PATCH/../hsl/hsl_ma57-5.2.0/src/../compiled/lib/libhsl_ma57.a
++addlib /home/leonardo/PESQUISA/scaled-algencan/algencan-3.1.1_scaled_PARA_FAZER_PATCH/../hsl/hsl_ma86-1.6.0/src/../compiled/lib/libhsl_ma86.a
++addlib /home/leonardo/PESQUISA/scaled-algencan/algencan-3.1.1_scaled_PARA_FAZER_PATCH/../hsl/hsl_ma97-2.5.0/src/../compiled/lib/libhsl_ma97.a
++addlib /home/leonardo/PESQUISA/scaled-algencan/algencan-3.1.1_scaled_PARA_FAZER_PATCH/../metis/metis-4.0.3/libmetis.a
++save
++end
+diff -ruN ../algencan-3.1.1/sources/algencan/Makefile ./sources/algencan/Makefile
 --- ../algencan-3.1.1/sources/algencan/Makefile	2015-08-19 16:12:48.000000000 -0300
-+++ ./sources/algencan/Makefile	2020-08-14 15:15:23.817066687 -0300
++++ ./sources/algencan/Makefile	2020-08-14 15:15:23.817066000 -0300
 @@ -6,26 +6,39 @@
     modouttyp.o modminsq.o modmachconst.o modhpredat.o modhappdat.o	\
     moditetyp.o modalgparam.o modalgconst.o calgencan.o accpro.o
@@ -515,7 +530,7 @@ diff -Naru ../algencan-3.1.1/sources/algencan/Makefile ./sources/algencan/Makefi
 +	rm -f $(LIB)/libprealgencan.a
  
  .PHONY: all clean
-diff -Naru ../algencan-3.1.1/sources/algencan/modalgparam.f90 ./sources/algencan/modalgparam.f90
+diff -ruN ../algencan-3.1.1/sources/algencan/modalgparam.f90 ./sources/algencan/modalgparam.f90
 --- ../algencan-3.1.1/sources/algencan/modalgparam.f90	2015-05-05 10:45:12.000000000 -0300
 +++ ./sources/algencan/modalgparam.f90	2020-08-14 11:30:33.874468000 -0300
 @@ -7,9 +7,10 @@
@@ -566,7 +581,7 @@ diff -Naru ../algencan-3.1.1/sources/algencan/modalgparam.f90 ./sources/algencan
  
    end subroutine setalgparam
  
-diff -Naru ../algencan-3.1.1/sources/algencan/problvlv.f90 ./sources/algencan/problvlv.f90
+diff -ruN ../algencan-3.1.1/sources/algencan/problvlv.f90 ./sources/algencan/problvlv.f90
 --- ../algencan-3.1.1/sources/algencan/problvlv.f90	2016-03-11 13:37:05.000000000 -0300
 +++ ./sources/algencan/problvlv.f90	2020-08-14 12:04:13.483253000 -0300
 @@ -1111,9 +1111,12 @@
@@ -591,20 +606,13 @@ diff -Naru ../algencan-3.1.1/sources/algencan/problvlv.f90 ./sources/algencan/pr
  
      else
         call ivevalgjac(n,x,g,m,jcfun,jcvar,jcval,jcnnz,lim,inform)
-diff -Naru ../algencan-3.1.1/sources/hsl/README ./sources/hsl/README
+diff -ruN ../algencan-3.1.1/sources/hsl/README ./sources/hsl/README
 --- ../algencan-3.1.1/sources/hsl/README	1969-12-31 21:00:00.000000000 -0300
-+++ ./sources/hsl/README	2020-08-14 15:19:31.586972740 -0300
++++ ./sources/hsl/README	2020-08-14 15:19:31.586972000 -0300
 @@ -0,0 +1,2 @@
 +This is the folder for the HSL packages in the original Algencan 3.1.1.
 +It is no longer used. See the new instructions for compiling HSL packages.
-diff -Naru ../algencan-3.1.1/sources/interfaces/ampl/._amplwrapper.c ./sources/interfaces/ampl/._amplwrapper.c
---- ../algencan-3.1.1/sources/interfaces/ampl/._amplwrapper.c	2017-03-10 15:49:37.000000000 -0300
-+++ ./sources/interfaces/ampl/._amplwrapper.c	1969-12-31 21:00:00.000000000 -0300
-@@ -1,2 +0,0 @@
--    Mac OS X            	   2  …     ·                                      ATTR      ·   Ü  Û                  Ü   5  )com.apple.metadata:kMDItemDownloadedDate     ¦  %com.apple.metadata:kMDItemWhereFroms bplist00¡3A½Ëdÿßn
--                            bplist00¢_Mhttps://mail-attachment.googleusercontent.com/attachment/u/0/?ui=2&ik=b72c389e7d&view=att&th=15821df4f87d14d4&attid=0.1&disp=safe&realattid=f_iv010tti0&zw&saddbat=ANGjdJ9Eatsd3EpzLFyo7x_XoW1fW3fStaF_aNBVj5-K95CKhI5EXyskZHw1OwHKhQe-HoTC-M3Yl6d8gEeG5gSh_m1u_F1g0i0Ywdpx-VVtZzCpEWBR0tTJcGu-DlflqTZze_r5vKVngEMlQHfI5-g7eTe-OLEwZX0yI89FLFWx4FJJ3dItSKFtRCetiD008AkcjV-YiNvjKl5xZBGR5v_rKz-ypB31qWCI8TZx8ZT1jpqPPScpQrAJ4I5G0mxWjgRg6ZwANIuOBSf1kh5Od2eljCx8XomT7sRP2tBGMOLbtkq9wZQLDwkZs9HBuHOVze_bC9a9JL-k2tnnjZnGWT-LNgHx9oYgmrXnuifwjM7Hyhjo0U3AL_N5rLojkbmlVTe0EU0M6JQJcHGNeUQ5_EoFnM9ioCWs9GbpgkCI6vmRt0FGfdhm2nHXNZfA2uw81nO8idrTooAmkc_yGnfAMB1SI4zOronQT2AGhL94vh7UsQ_UsKr-fIWlEh5gT-Vtxs3yQeT8_rYBOYHzQv3_bzsC5Cw24t8mjcVkFKh8F54TWL4zZ411jABVmGF3FsMAeXK39CfbLuuR1dWI707apy3DQdh13OmRuUzcmtppUQrejgzXaxN0jsuTJMaLAZoPh_8emquuxtququN7ywPxumwSJaOhTihOXg5P09vGNw_!https://mail.google.com/mail/u/0/  \                           €
-\ Nenhum caractere de nova linha no final do arquivo
-diff -Naru ../algencan-3.1.1/sources/interfaces/ampl/amplwrapper.c ./sources/interfaces/ampl/amplwrapper.c
+diff -ruN ../algencan-3.1.1/sources/interfaces/ampl/amplwrapper.c ./sources/interfaces/ampl/amplwrapper.c
 --- ../algencan-3.1.1/sources/interfaces/ampl/amplwrapper.c	2017-03-10 15:49:37.000000000 -0300
 +++ ./sources/interfaces/ampl/amplwrapper.c	2020-08-14 11:46:42.653756000 -0300
 @@ -936,6 +936,9 @@
@@ -617,7 +625,7 @@ diff -Naru ../algencan-3.1.1/sources/interfaces/ampl/amplwrapper.c ./sources/int
  
    /* CALL ALGENCAN */
    c_algencan(&amplf,&amplg,&amplh,&amplc,&ampljac,&amplhc,&amplfc,
-diff -Naru ../algencan-3.1.1/sources/interfaces/ampl/Makefile ./sources/interfaces/ampl/Makefile
+diff -ruN ../algencan-3.1.1/sources/interfaces/ampl/Makefile ./sources/interfaces/ampl/Makefile
 --- ../algencan-3.1.1/sources/interfaces/ampl/Makefile	2013-12-18 11:21:52.000000000 -0200
 +++ ./sources/interfaces/ampl/Makefile	2020-08-14 11:48:24.230948000 -0300
 @@ -1,26 +1,17 @@
@@ -657,7 +665,7 @@ diff -Naru ../algencan-3.1.1/sources/interfaces/ampl/Makefile ./sources/interfac
 +	rm -f $(BIN)/$(DIR)/algencan_scaled
  
  .PHONY: all install clean distclean
-diff -Naru ../algencan-3.1.1/sources/interfaces/cutest/cutestwrapper.f90 ./sources/interfaces/cutest/cutestwrapper.f90
+diff -ruN ../algencan-3.1.1/sources/interfaces/cutest/cutestwrapper.f90 ./sources/interfaces/cutest/cutestwrapper.f90
 --- ../algencan-3.1.1/sources/interfaces/cutest/cutestwrapper.f90	2015-08-14 10:23:16.000000000 -0300
 +++ ./sources/interfaces/cutest/cutestwrapper.f90	2020-08-14 11:37:42.660799000 -0300
 @@ -730,7 +730,11 @@
@@ -682,9 +690,9 @@ diff -Naru ../algencan-3.1.1/sources/interfaces/cutest/cutestwrapper.f90 ./sourc
    deallocate(x,l,u,lambda,equatn,linear,ca,cb,ccor,cmap,slaind,stat=allocstat)
    if ( allocstat .ne. 0 ) then
       write(*,*) 'In the CUTEST interface main file, allocation error.'
-diff -Naru ../algencan-3.1.1/sources/interfaces/cutest/Makefile ./sources/interfaces/cutest/Makefile
+diff -ruN ../algencan-3.1.1/sources/interfaces/cutest/Makefile ./sources/interfaces/cutest/Makefile
 --- ../algencan-3.1.1/sources/interfaces/cutest/Makefile	2015-08-14 12:53:29.000000000 -0300
-+++ ./sources/interfaces/cutest/Makefile	2020-08-14 15:16:04.313379773 -0300
++++ ./sources/interfaces/cutest/Makefile	2020-08-14 15:16:04.313379000 -0300
 @@ -2,18 +2,13 @@
  DIR := $(notdir $(CURDIR))
  SIF := ELFUN EXTER GROUP RANGE
