@@ -6,9 +6,9 @@ echo "   applying patch to the new Algencan 3.1.1   "
 echo "                scaled version                "
 echo "=============================================="
 
-rm -rdf algencan-3.1.1_scaled
+if [ -s "algencan-3.1.1-orig.code/algencan-3.1.1.tgz" ]; then
 
-if [ -f "algencan-3.1.1-orig.code/algencan-3.1.1.tgz" ]; then
+    rm -rdf algencan-3.1.1_scaled
 
     (cd algencan-3.1.1-orig.code && tar -zxf algencan-3.1.1.tgz)
 

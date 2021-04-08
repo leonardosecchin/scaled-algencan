@@ -1,5 +1,15 @@
 #!/bin/sh
 
+############################
+# Scaled Algencan
+# Visit github.com/leonardosecchin/scaled-algencan
+#
+# This script unpacks and compiles each HSL package
+# when provided by the user. Metis 4.0.3 is used if
+# provided. The GNU/Linux native OpenBLAS library
+# is mandatory.
+############################
+
 echo "=============================================="
 echo "Unpacking and compiling HSL libraries..."
 echo "=============================================="
@@ -16,8 +26,17 @@ else
 fi
 
 if [ -d "hsl_ma57-5.2.0" ]; then
-   # already unzipped
-   (cd hsl_ma57-5.2.0 && ./configure $METISFLAG --with-blas="$BLAS" --prefix=$PWD/compiled CFLAGS=-fPIC FCFLAGS=-fPIC FFLAGS=-fPIC && make && make install)
+   # hsl_ma57-5.2.0 already unzipped
+   if [ -s "hsl_ma57-5.2.0/compiled/lib/libhsl_ma57.a" ]; then
+      # hsl_ma57-5.2.0 already compiled
+      echo
+      echo "hsl_ma57-5.2.0 library found!"
+      echo "If you want to recompile all HSL packages, run 'make clean' first."
+      echo
+   else
+      # configure and compile hsl_ma57-5.2.0
+      (cd hsl_ma57-5.2.0 && ./configure $METISFLAG --with-blas="$BLAS" --prefix=$PWD/compiled CFLAGS=-fPIC FCFLAGS=-fPIC FFLAGS=-fPIC && make && make install)
+   fi
 else
    if [ -s "hsl_ma57-5.2.0.tar.gz" ]; then
       tar -zxf hsl_ma57-5.2.0.tar.gz
@@ -35,8 +54,17 @@ else
 fi
 
 if [ -d "hsl_ma86-1.6.0" ]; then
-   # already unzipped
-   (cd hsl_ma86-1.6.0 && ./configure $METISFLAG --with-blas="$BLAS" --prefix=$PWD/compiled CFLAGS=-fPIC FCFLAGS=-fPIC FFLAGS=-fPIC && make && make install)
+   # hsl_ma86-1.6.0 already unzipped
+   if [ -s "hsl_ma86-1.6.0/compiled/lib/libhsl_ma86.a" ]; then
+      # hsl_ma86-1.6.0 already compiled
+      echo
+      echo "hsl_ma86-1.6.0 library found!"
+      echo "If you want to recompile all HSL packages, run 'make clean' first."
+      echo
+   else
+      # configure and compile hsl_ma86-1.6.0
+      (cd hsl_ma86-1.6.0 && ./configure $METISFLAG --with-blas="$BLAS" --prefix=$PWD/compiled CFLAGS=-fPIC FCFLAGS=-fPIC FFLAGS=-fPIC && make && make install)
+   fi
 else
    if [ -s "hsl_ma86-1.6.0.tar.gz" ]; then
       tar -zxf hsl_ma86-1.6.0.tar.gz
@@ -53,8 +81,17 @@ else
 fi
 
 if [ -d "hsl_ma97-2.5.0" ]; then
-   # already unzipped
-   (cd hsl_ma97-2.5.0 && ./configure $METISFLAG --with-blas="$BLAS" --prefix=$PWD/compiled CFLAGS=-fPIC FCFLAGS=-fPIC FFLAGS=-fPIC && make && make install)
+   # hsl_ma97-2.5.0 already unzipped
+   if [ -s "hsl_ma97-2.5.0/compiled/lib/libhsl_ma97.a" ]; then
+      # hsl_ma97-2.5.0 already compiled
+      echo
+      echo "hsl_ma97-2.5.0 library found!"
+      echo "If you want to recompile all HSL packages, run 'make clean' first."
+      echo
+   else
+      # configure and compile hsl_ma97-2.5.0
+      (cd hsl_ma97-2.5.0 && ./configure $METISFLAG --with-blas="$BLAS" --prefix=$PWD/compiled CFLAGS=-fPIC FCFLAGS=-fPIC FFLAGS=-fPIC && make && make install)
+   fi
 else
    if [ -s "hsl_ma97-2.5.0.tar.gz" ]; then
       tar -zxf hsl_ma97-2.5.0.tar.gz

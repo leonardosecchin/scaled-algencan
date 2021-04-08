@@ -1,11 +1,29 @@
 #!/bin/sh
 
+############################
+# Scaled Algencan
+# Visit github.com/leonardosecchin/scaled-algencan
+#
+# This script unpacks and compiles Metis 4.0.3
+# if provided by the user.
+############################
+
 echo "=============================================="
 echo "Unpacking/compiling Metis 4.0.3..."
 echo "=============================================="
 
 if [ -d "metis-4.0.3" ]; then
-   (cd metis-4.0.3 && make COPTIONS=-fPIC)
+   # metis-4.0.3 already unzipped
+   if [ -s "metis-4.0.3/libmetis.a" ]; then
+      # metis-4.0.3 already compiled
+      echo
+      echo "metis-4.0.3 library found!"
+      echo "If you want to recompile Metis, run 'make clean' first."
+      echo
+   else
+      # compile metis-4.0.3
+      (cd metis-4.0.3 && make COPTIONS=-fPIC)
+   fi
 else
    if [ -s "metis-4.0.3.tar.gz" ]; then
       tar -zxf metis-4.0.3.tar.gz
