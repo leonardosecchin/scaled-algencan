@@ -8,16 +8,28 @@ echo "=============================================="
 
 rm -rdf algencan-3.1.1_scaled
 
-(cd algencan-3.1.1-orig.code && tar -zxf algencan-3.1.1.tgz)
+if [ -f "algencan-3.1.1-orig.code/algencan-3.1.1.tgz" ]; then
 
-mv algencan-3.1.1-orig.code/algencan-3.1.1 algencan-3.1.1_scaled
+    (cd algencan-3.1.1-orig.code && tar -zxf algencan-3.1.1.tgz)
 
-(cd algencan-3.1.1_scaled && patch -s -p0 < ../algencan.patch)
+    mv algencan-3.1.1-orig.code/algencan-3.1.1 algencan-3.1.1_scaled
 
-cp -f algencan.dat README.scaled-Algencan algencan-3.1.1_scaled
+    (cd algencan-3.1.1_scaled && patch -s -p0 < ../algencan.patch)
 
-echo
-echo "Finished!"
-echo
-echo "The folder 'algencan-3.1.1_scaled' was created."
-echo
+    cp -f algencan.dat README.scaled-Algencan algencan-3.1.1_scaled
+
+    echo
+    echo "Finished!"
+    echo
+    echo "The folder 'algencan-3.1.1_scaled' was (re)created."
+    echo "See algencan-3.1.1_scaled/README.scaled-Algencan"
+    echo "for compilation instructions."
+    echo
+
+else
+    echo
+    echo "algencan-3.1.1-orig.code/algencan-3.1.1.tgz not found!"
+    echo
+    echo "Download it at www.ime.usp.br/~egbirgin/tango/codes.php."
+    echo
+fi
