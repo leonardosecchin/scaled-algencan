@@ -1,6 +1,6 @@
 diff -ruN ../algencan-3.1.1/Makefile ./Makefile
 --- ../algencan-3.1.1/Makefile	2017-03-10 16:25:44.000000000 -0300
-+++ ./Makefile	2020-08-14 15:41:22.301154000 -0300
++++ ./Makefile	2021-05-01 13:01:54.043130594 -0300
 @@ -5,21 +5,30 @@
  # case.
  AR := ar
@@ -37,9 +37,12 @@ diff -ruN ../algencan-3.1.1/Makefile ./Makefile
  INTERSRC := $(SRC)/interfaces
  INTERFCS := $(notdir $(wildcard $(INTERSRC)/*))
  
-@@ -29,39 +38,21 @@
+@@ -27,41 +36,23 @@
+ # values shown are mere examples. Leave them blank if you feel that
+ # you will not use them. None of them is mandatory to use the
  # stand-alone Fortran version of ALGENCAN.
- AMPL     := $(HOME)/ampl
+-AMPL     := $(HOME)/ampl
++AMPL     := $(HOME)/solvers2
  
 -# Set the variables below to 1 if the source files of the BLAS and
 -# LAPACK dependencies of the HSL subroutines were placed within folder
@@ -59,13 +62,17 @@ diff -ruN ../algencan-3.1.1/Makefile ./Makefile
  
  # CUTEst Directories
 -MASTSIF  := $(ALGENCAN)/myfolder/testes
- #MASTSIF  := $(HOME)/CUTEst/sif
+-#MASTSIF  := $(HOME)/CUTEst/sif
 -#MASTSIF  := $(HOME)/CUTEst/sif/netlib
 -#MASTSIF  := $(HOME)/CUTEr/MastSIF/marosmeszaros
- ARCHDEFS  := $(HOME)/CUTEst/archdefs
- SIFDECODE := $(HOME)/CUTEst/sifdecode
- CUTEST    := $(HOME)/CUTEst/cutest
+-ARCHDEFS  := $(HOME)/CUTEst/archdefs
+-SIFDECODE := $(HOME)/CUTEst/sifdecode
+-CUTEST    := $(HOME)/CUTEst/cutest
 -MYARCH    := mac64.osx.gfo
++MASTSIF   := $(HOME)/CUTEst/sif
++ARCHDEFS  := $(HOME)/CUTEst/ARCHDefs
++SIFDECODE := $(HOME)/CUTEst/SIFDecode
++CUTEST    := $(HOME)/CUTEst/CUTEst
 +MYARCH    := pc64.lnx.gfo
  
  # Stop your modifications here.
@@ -106,7 +113,16 @@ diff -ruN ../algencan-3.1.1/Makefile ./Makefile
  .PHONY: all clean distclean algencan*
 diff -ruN ../algencan-3.1.1/sources/algencan/algencan.f90 ./sources/algencan/algencan.f90
 --- ../algencan-3.1.1/sources/algencan/algencan.f90	2017-03-10 16:05:18.000000000 -0300
-+++ ./sources/algencan/algencan.f90	2020-08-14 14:13:38.793124000 -0300
++++ ./sources/algencan/algencan.f90	2021-05-01 11:10:03.301683593 -0300
+@@ -70,7 +70,7 @@
+   ! CPU time for sequential applications
+ 
+   time = dtime(tdum)
+-  
++
+   ! ==================================================================
+   ! Error tracker
+   ! ==================================================================
 @@ -207,6 +207,10 @@
    call setalgparam(val_innercall = .false.)
    call setalgparam(val_useustp   = .false.)
@@ -118,6 +134,51 @@ diff -ruN ../algencan-3.1.1/sources/algencan/algencan.f90 ./sources/algencan/alg
    ! ==================================================================
    ! Open output file
    ! ==================================================================
+@@ -290,7 +294,7 @@
+   if ( .false. ) then
+ 
+      solver = 'SECO'
+-     
++
+      call seco(n,x,l,u,m,lambda,equatn,linear,epsfeas,epsopt,efstain,eostain, &
+           .false.,.false.,f,cnorm,bdsnorm,nlnorm,fu,cunorm,outiter,totiter,   &
+           best_f,best_cnorm,best_bdsnorm,best_nlnorm,best_fu,best_cunorm,     &
+@@ -301,7 +305,7 @@
+      ! ALGENCAN for PNL problems
+ 
+      solver = 'AUGLAG'
+-     
++
+      call auglag(n,x,l,u,m,lambda,equatn,linear,epsfeas,epsopt,     &
+           efstain,eostain,efacc,eoacc,f,cnorm,snorm,nlnorm,fu,      &
+           cunorm,best_fu,best_cunorm,best_f,best_cnorm,best_nlnorm, &
+@@ -315,7 +319,7 @@
+      ! GENCAN for box-constrained problems and feasibility problems
+ 
+      solver = 'GENCAN'
+-     
++
+      maxit = 999999999
+ 
+      if ( maxinnitgiven .gt. 0 ) then
+@@ -398,7 +402,7 @@
+      write(* ,9000) time
+      write(10,9000) time
+   end if
+-  
++
+   ! ==================================================================
+   ! Close output file
+   ! ==================================================================
+@@ -417,7 +421,7 @@
+                        best_nlnorm,best_f,best_cnorm,best_outit, &
+                        secoinfo,inform,time
+         close(20)
+-        
++
+      else
+         open(20,file='algencan-tabline.out')
+         write(20,9200) fu,cunorm,f,cnorm,nlnorm,best_fu,best_cunorm,    &
 diff -ruN ../algencan-3.1.1/sources/algencan/auglag.f90 ./sources/algencan/auglag.f90
 --- ../algencan-3.1.1/sources/algencan/auglag.f90	2015-11-06 16:04:00.000000000 -0200
 +++ ./sources/algencan/auglag.f90	2021-04-06 19:19:32.023489468 -0300
@@ -401,7 +462,7 @@ diff -ruN ../algencan-3.1.1/sources/algencan/fparam.f90 ./sources/algencan/fpara
    ! RETURN
 diff -ruN ../algencan-3.1.1/sources/algencan/libalgencan.mri ./sources/algencan/libalgencan.mri
 --- ../algencan-3.1.1/sources/algencan/libalgencan.mri	1969-12-31 21:00:00.000000000 -0300
-+++ ./sources/algencan/libalgencan.mri	2021-04-06 19:20:05.199331555 -0300
++++ ./sources/algencan/libalgencan.mri	2021-04-08 12:01:58.985724035 -0300
 @@ -0,0 +1,8 @@
 +create libalgencan.a
 +addlib libprealgencan.a
