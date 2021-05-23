@@ -83,11 +83,13 @@ from `algencan-3.1.1_scaled`. This will create the executable file `algencan` an
 
 ## Usage
 
-To run Algencan with scaled stopping criterion, call it with the `OPTSCALE` parameter. You can use the `algencan.dat` file. For the CUTEst interface, just copy this file to the same folder as the Scaled Algencan executable file. For AMPL interface, run
+**The scaled stopping criterion is enabled by default.** To run Algencan without it, call the algorithm with the `NON-SCALED-OPTIMALITY` flag. To do this, adjust the `algencan.dat` file accordingly. For the CUTEst interface, just copy this file to the same folder as the Scaled Algencan executable file. For AMPL interface, run
 ~~~
 algencan problem.nl specfnm="algencan.dat"
 ~~~
 from the folder where `algencan.dat` is located, or set `specfnm` to the absolute/relative path of `algencan.dat`.
+
+It is possible to adjust the maximum scale factor for optimality using `algencan.dat`. See instructions in the file.
 
 
 ## Funding

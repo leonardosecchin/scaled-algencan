@@ -113,7 +113,7 @@ diff -ruN ../algencan-3.1.1/Makefile ./Makefile
  .PHONY: all clean distclean algencan*
 diff -ruN ../algencan-3.1.1/sources/algencan/algencan.f90 ./sources/algencan/algencan.f90
 --- ../algencan-3.1.1/sources/algencan/algencan.f90	2017-03-10 16:05:18.000000000 -0300
-+++ ./sources/algencan/algencan.f90	2021-05-01 11:10:03.301683593 -0300
++++ ./sources/algencan/algencan.f90	2021-05-23 17:14:10.275190458 -0300
 @@ -70,7 +70,7 @@
    ! CPU time for sequential applications
  
@@ -128,7 +128,7 @@ diff -ruN ../algencan-3.1.1/sources/algencan/algencan.f90 ./sources/algencan/alg
    call setalgparam(val_useustp   = .false.)
  
 +  ! Scaled Algencan parameters default values
-+  call setalgparam(val_optscale = .false.)
++  call setalgparam(val_nooptscale = .false.)
 +  call setalgparam(val_maxoptscalefactor = 1.0d20)
 +
    ! ==================================================================
@@ -181,14 +181,14 @@ diff -ruN ../algencan-3.1.1/sources/algencan/algencan.f90 ./sources/algencan/alg
          write(20,9200) fu,cunorm,f,cnorm,nlnorm,best_fu,best_cunorm,    &
 diff -ruN ../algencan-3.1.1/sources/algencan/auglag.f90 ./sources/algencan/auglag.f90
 --- ../algencan-3.1.1/sources/algencan/auglag.f90	2015-11-06 16:04:00.000000000 -0200
-+++ ./sources/algencan/auglag.f90	2021-04-06 19:19:32.023489468 -0300
++++ ./sources/algencan/auglag.f90	2021-05-23 17:18:02.372096490 -0300
 @@ -8,7 +8,8 @@
  
    use modmachconst
    use modalgconst
 -  use modalgparam, only: setalgparam,skipacc,maxoutitgiven,maxinnitgiven,rhoinigiven,rhomaxgiven
 +  use modalgparam, only: setalgparam,skipacc,maxoutitgiven,maxinnitgiven, &
-+     rhoinigiven,rhomaxgiven,optscale,maxoptscalefactor
++     rhoinigiven,rhomaxgiven,nooptscale,maxoptscalefactor
    use modouttyp
    use probgiven, only: seconde
    use problvls, only: setproblvls,ssetp,sevalobjc,scale,sc,sf
@@ -218,16 +218,16 @@ diff -ruN ../algencan-3.1.1/sources/algencan/auglag.f90 ./sources/algencan/augla
    ! Counters
  
    outiter  = 0
-@@ -173,6 +177,9 @@
-      end if
+@@ -189,6 +193,9 @@
+      nlpsupn = max( nlpsupn, abs( nlpi ) )
    end do
  
-+  ! initial nlpsupnscale (only has effect when optscale = 1)
++  ! initial nlpsupnscale (only has effect when nooptscale = false)
 +  nlpsupnscale = nlpsupn
 +
-   ! Compute continuous projected Lagrangian gradient norm
+   ! Compute squared-infeasibility gradient norm
  
-   call sevalnl(n,x,m,lambda,equatn,linear,nl,inform)
+   call stafeas(n,x,l,u,m,c,lambda,equatn,nc,ncsupn,inform)
 @@ -239,17 +246,17 @@
          if ( outiter .eq. 0 ) then
             write(* ,1041) outiter,      f,csupn,snorm,nlpsupn, &
@@ -277,7 +277,7 @@ diff -ruN ../algencan-3.1.1/sources/algencan/auglag.f90 ./sources/algencan/augla
    end if
  
 +  ! Test feasibility, optimality and complementarity (scaled criterion)
-+  if ( optscale ) then
++  if ( .not. nooptscale ) then
 +     if ( max( snorm, csupnu ) .le. epsfeas .and. &
 +         nlpsupnscale .le. epsopt ) then
 +         alinfo = 4
@@ -314,7 +314,7 @@ diff -ruN ../algencan-3.1.1/sources/algencan/auglag.f90 ./sources/algencan/augla
 +     nlpsupn = max( nlpsupn, abs( nlpi ) )
 +  end do
 +
-+  if ( optscale ) then
++  if ( .not. nooptscale ) then
 +	! Scale factor
 +
 +	optscalefactor = abs( lambda(1) )
@@ -419,8 +419,72 @@ diff -ruN ../algencan-3.1.1/sources/algencan/auglag.f90 ./sources/algencan/augla
    implicit none
 diff -ruN ../algencan-3.1.1/sources/algencan/fparam.f90 ./sources/algencan/fparam.f90
 --- ../algencan-3.1.1/sources/algencan/fparam.f90	2017-02-01 16:40:31.000000000 -0200
-+++ ./sources/algencan/fparam.f90	2020-08-14 14:53:06.002694000 -0300
-@@ -237,7 +237,7 @@
++++ ./sources/algencan/fparam.f90	2021-05-23 17:48:08.635581584 -0300
+@@ -9,7 +9,8 @@
+   use lssma97
+   use probgiven,   only: firstde,seconde,truehpr
+   use modalgparam, only: hptype,innslvr,lsssubTR,lsssubNW,lsssubACC,&
+-                         sclsubTR,sclsubNW,sclsubACC,skipacc
++                         sclsubTR,sclsubNW,sclsubACC,skipacc,&
++                         nooptscale,maxoptscalefactor
+   use modouttyp,   only: iprint,iprintctl,ncomp,solfnm
+   use problvlu,    only: rmfixv
+   use problvlt,    only: slacks
+@@ -152,7 +153,8 @@
+                     eoacc,iprint,ncomp,                            &
+                     "'"//trim(adjustl(specfnm))//"'",              &
+                     "'"//trim(adjustl(outputfnm))//"'",            &
+-                    "'"//trim(adjustl(solfnm))//"'"
++                    "'"//trim(adjustl(solfnm))//"'",               &
++                    .not.nooptscale,maxoptscalefactor
+      write(10,4000) hslsubs,firstde,seconde,truehpr,hptype,        &
+                     lsssubTR,sclsubTR,lsssubNW,sclsubNW,lsssubACC, &
+                     sclsubACC,innslvr,.not.skipacc,rmfixv,slacks,  &
+@@ -160,7 +162,8 @@
+                     eoacc,iprint,ncomp,                            &
+                     "'"//trim(adjustl(specfnm))//"'",              &
+                     "'"//trim(adjustl(outputfnm))//"'",            &
+-                    "'"//trim(adjustl(solfnm))//"'"
++                    "'"//trim(adjustl(solfnm))//"'",               &
++                    .not.nooptscale,maxoptscalefactor
+   end if
+ 
+ ! NON-EXECUTABLE STATEMENTS
+@@ -190,7 +193,10 @@
+              /,1X,'ncomp                  = ',          I20, &
+             //,1X,'Specification filename = ',          A20, &
+              /,1X,'Output filename        = ',          A20, &
+-             /,1X,'Solution filename      = ',          A20)
++             /,1X,'Solution filename      = ',          A20, &
++            //,1X,'SCALED ALGENCAN PARAMETERS:',/,           &
++             /,1X,'Scale solution         = ',       19X,L1, &
++             /,1X,'Max opt scale factor   = ',  8X,1P,D12.4)
+  8000 format(/,1X,78('='),                                               &
+              /,1X,'This is ALGENCAN 3.1.1.',                             &
+              /,1X,'ALGENCAN, an Augmented Lagrangian method for ',       &
+@@ -198,6 +204,12 @@
+                   'Project: Trustable Algorithms for Nonlinear ',        &
+                   'General Optimization.',/,1X,'See ',                   &
+                   'http://www.ime.usp.br/~egbirgin/tango/ for details.', &
++             /,1X,78('='),                                               &
++             /,1X,'Scaled ALGENCAN is a modification of ALGENCAN that ', &
++                  'implements the additional',/,1X,'option of scaling ', &
++                  'the final solution.',/,1X,'See ',                     &
++                  'https://github.com/leonardosecchin/scaled-algencan ', &
++                  'for details.',                                        &
+              /,1X,78('='))
+  8900 format(/,1X,'The specification file is not being used.')
+  9000 format(/,1X,'The specification file was found.',/, &
+@@ -213,7 +225,7 @@
+ ! ******************************************************************
+ 
+ subroutine procline(line,epsfeas,epsopt,efstain,eostain,efacc,eoacc)
+-  
++
+   use lssma57
+   use lssma86
+   use lssma97
+@@ -237,7 +249,7 @@
    character(len=80), intent(in) :: line
  
    ! PARAMETERS
@@ -429,16 +493,25 @@ diff -ruN ../algencan-3.1.1/sources/algencan/fparam.f90 ./sources/algencan/fpara
  
    ! LOCAL SCALARS
    logical      :: lss,scl
-@@ -287,6 +287,8 @@
+@@ -247,7 +259,7 @@
+   ! LOCAL ARRAYS
+   character(len= 4) :: lsssub,sclsub
+   character(len=80) :: keyword,lline,str
+-  
++
+   ! FUNCTIONS
+   logical :: GetWord
+ 
+@@ -287,6 +299,8 @@
    data dictionary(25) /'OUTER-ITERATIONS-LIMIT                       '/
    data dictionary(26) /'PENALTY-PARAMETER-INITIAL-VALUE              '/
    data dictionary(27) /'LARGEST-PENALTY-PARAMETER-ALLOWED            '/
-+  data dictionary(28) /'OPTSCALE                                     '/
++  data dictionary(28) /'NON-SCALED-OPTIMALITY                        '/
 +  data dictionary(29) /'OPTSCALE-MAX-FACTOR                          '/
  
    ! Upper-case letter means mandatory extra value. Lowe-case letter means optional
  
-@@ -317,6 +319,8 @@
+@@ -317,6 +331,8 @@
    data addinfo(25) /'I'/
    data addinfo(26) /'D'/
    data addinfo(27) /'D'/
@@ -447,22 +520,39 @@ diff -ruN ../algencan-3.1.1/sources/algencan/fparam.f90 ./sources/algencan/fpara
  
    ! PROCESS LINE
  
-@@ -695,6 +699,12 @@
+@@ -426,7 +442,7 @@
+            call setalgparam(val_lsssubACC = lsssub)
+            if ( sclsub .eq. 'MC64' .or. sclsub .eq. 'NONE' ) then
+               call setalgparam(val_sclsubACC = sclsub)
+-           else 
++           else
+               call setalgparam(val_sclsubACC = 'MC64')
+               if ( sclsub .ne. '' ) then
+                  if ( iprintctl(2) ) then
+@@ -695,6 +711,12 @@
  
    else if ( ikey .eq. 27 ) then
       call setalgparam(val_rhomaxgiven = dnum)
 +
 +  else if ( ikey .eq. 28 ) then
-+     call setalgparam(val_optscale = .true.)
++     call setalgparam(val_nooptscale = .true.)
 +
 +  else if ( ikey .eq. 29 ) then
-+     call setalgparam(val_maxoptscalefactor = dnum)
++     call setalgparam(val_maxoptscalefactor = max(1.0d0,dnum))
    end if
  
    ! RETURN
+@@ -824,6 +846,6 @@
+ 
+   GetWord = .true.
+   return
+-  
++
+ end function GetWord
+ 
 diff -ruN ../algencan-3.1.1/sources/algencan/libalgencan.mri ./sources/algencan/libalgencan.mri
 --- ../algencan-3.1.1/sources/algencan/libalgencan.mri	1969-12-31 21:00:00.000000000 -0300
-+++ ./sources/algencan/libalgencan.mri	2021-04-08 12:01:58.985724035 -0300
++++ ./sources/algencan/libalgencan.mri	2021-05-23 17:04:40.850510509 -0300
 @@ -0,0 +1,8 @@
 +create libalgencan.a
 +addlib libprealgencan.a
@@ -593,13 +683,13 @@ diff -ruN ../algencan-3.1.1/sources/algencan/Makefile ./sources/algencan/Makefil
  .PHONY: all clean
 diff -ruN ../algencan-3.1.1/sources/algencan/modalgparam.f90 ./sources/algencan/modalgparam.f90
 --- ../algencan-3.1.1/sources/algencan/modalgparam.f90	2015-05-05 10:45:12.000000000 -0300
-+++ ./sources/algencan/modalgparam.f90	2020-08-14 11:30:33.874468000 -0300
++++ ./sources/algencan/modalgparam.f90	2021-05-23 16:34:48.893994839 -0300
 @@ -7,9 +7,10 @@
    character(len=4), protected :: precond,lsssubACC,lsssubNW,lsssubTR, &
         sclsubACC,sclsubNW,sclsubTR
    character(len=2), protected :: innslvr
 -  logical, protected :: innercall,ignoref,skipacc,useustp
-+  logical, protected :: innercall,ignoref,skipacc,useustp,optscale
++  logical, protected :: innercall,ignoref,skipacc,useustp,nooptscale
    integer, protected :: maxaccitgiven,maxinnitgiven,maxoutitgiven
 -  real (kind=8), protected :: rhoinigiven,rhomaxgiven
 +  real (kind=8), protected :: rhoinigiven,rhomaxgiven,&
@@ -607,41 +697,77 @@ diff -ruN ../algencan-3.1.1/sources/algencan/modalgparam.f90 ./sources/algencan/
  
    ! SUBROUTINES
    public :: setalgparam
-@@ -22,7 +23,8 @@
+@@ -18,11 +19,12 @@
+ 
+   ! ******************************************************************
+   ! ******************************************************************
+-  
++
    subroutine setalgparam(val_hptype,val_precond,val_lsssubACC,val_lsssubNW, &
         val_lsssubTR,val_sclsubACC,val_sclsubNW,val_sclsubTR,val_innslvr, &
         val_innercall,val_ignoref,val_skipacc,val_useustp,val_maxaccitgiven, &
 -       val_maxinnitgiven,val_maxoutitgiven,val_rhoinigiven,val_rhomaxgiven)
 +       val_maxinnitgiven,val_maxoutitgiven,val_rhoinigiven,val_rhomaxgiven, &
-+       val_optscale,val_maxoptscalefactor)
++       val_nooptscale,val_maxoptscalefactor)
  
      implicit none
  
-@@ -31,10 +33,11 @@
+@@ -31,33 +33,37 @@
           val_lsssubNW,val_lsssubTR,val_sclsubACC,val_sclsubNW,val_sclsubTR
      character(len=2), intent(in), optional :: val_innslvr
      logical, intent(in), optional :: val_innercall,val_ignoref,val_skipacc, &
 -         val_useustp
-+         val_useustp,val_optscale
++         val_useustp,val_nooptscale
      integer, intent(in), optional :: val_maxaccitgiven,val_maxinnitgiven, &
           val_maxoutitgiven
 -    real (kind=8), intent(in), optional :: val_rhoinigiven,val_rhomaxgiven
 +    real (kind=8), intent(in), optional :: val_rhoinigiven,val_rhomaxgiven, &
 +         val_maxoptscalefactor
  
-     if ( present( val_hptype        ) ) hptype        = val_hptype       
-     if ( present( val_precond       ) ) precond       = val_precond      
-@@ -53,7 +56,9 @@
+-    if ( present( val_hptype        ) ) hptype        = val_hptype       
+-    if ( present( val_precond       ) ) precond       = val_precond      
+-    if ( present( val_lsssubACC     ) ) lsssubACC     = val_lsssubACC    
+-    if ( present( val_lsssubNW      ) ) lsssubNW      = val_lsssubNW     
+-    if ( present( val_lsssubTR      ) ) lsssubTR      = val_lsssubTR     
+-    if ( present( val_sclsubACC     ) ) sclsubACC     = val_sclsubACC    
+-    if ( present( val_sclsubNW      ) ) sclsubNW      = val_sclsubNW     
+-    if ( present( val_sclsubTR      ) ) sclsubTR      = val_sclsubTR     
+-    if ( present( val_innslvr       ) ) innslvr       = val_innslvr      
+-    if ( present( val_innercall     ) ) innercall     = val_innercall    
+-    if ( present( val_ignoref       ) ) ignoref       = val_ignoref      
+-    if ( present( val_skipacc       ) ) skipacc       = val_skipacc      
+-    if ( present( val_useustp       ) ) useustp       = val_useustp      
++    if ( present( val_hptype        ) ) hptype        = val_hptype
++    if ( present( val_precond       ) ) precond       = val_precond
++    if ( present( val_lsssubACC     ) ) lsssubACC     = val_lsssubACC
++    if ( present( val_lsssubNW      ) ) lsssubNW      = val_lsssubNW
++    if ( present( val_lsssubTR      ) ) lsssubTR      = val_lsssubTR
++    if ( present( val_sclsubACC     ) ) sclsubACC     = val_sclsubACC
++    if ( present( val_sclsubNW      ) ) sclsubNW      = val_sclsubNW
++    if ( present( val_sclsubTR      ) ) sclsubTR      = val_sclsubTR
++    if ( present( val_innslvr       ) ) innslvr       = val_innslvr
++    if ( present( val_innercall     ) ) innercall     = val_innercall
++    if ( present( val_ignoref       ) ) ignoref       = val_ignoref
++    if ( present( val_skipacc       ) ) skipacc       = val_skipacc
++    if ( present( val_useustp       ) ) useustp       = val_useustp
+     if ( present( val_maxaccitgiven ) ) maxaccitgiven = val_maxaccitgiven
      if ( present( val_maxinnitgiven ) ) maxinnitgiven = val_maxinnitgiven
      if ( present( val_maxoutitgiven ) ) maxoutitgiven = val_maxoutitgiven
-     if ( present( val_rhoinigiven   ) ) rhoinigiven   = val_rhoinigiven  
+-    if ( present( val_rhoinigiven   ) ) rhoinigiven   = val_rhoinigiven  
 -    if ( present( val_rhomaxgiven   ) ) rhomaxgiven   = val_rhomaxgiven  
++    if ( present( val_rhoinigiven   ) ) rhoinigiven   = val_rhoinigiven
 +    if ( present( val_rhomaxgiven   ) ) rhomaxgiven   = val_rhomaxgiven
-+    if ( present( val_optscale      ) ) optscale      = val_optscale
++    if ( present( val_nooptscale    ) ) nooptscale    = val_nooptscale
 +    if ( present( val_maxoptscalefactor ) ) maxoptscalefactor = val_maxoptscalefactor
  
    end subroutine setalgparam
  
+   ! ******************************************************************
+   ! ******************************************************************
+-  
++
+ end module modalgparam
++
 diff -ruN ../algencan-3.1.1/sources/algencan/problvlv.f90 ./sources/algencan/problvlv.f90
 --- ../algencan-3.1.1/sources/algencan/problvlv.f90	2016-03-11 13:37:05.000000000 -0300
 +++ ./sources/algencan/problvlv.f90	2020-08-14 12:04:13.483253000 -0300

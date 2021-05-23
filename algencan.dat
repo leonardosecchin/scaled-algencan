@@ -7,11 +7,13 @@
 # for details.
 
 
-# To use the scaled algorithm, uncomment the appropriated lines
-# below.
-# The 'OPTSCALE' flag indicates whether scaling is used or not;
 # 'OPTSCALE-MAX-FACTOR' is the maximum value for the optimality
-# scale factor. The default value is 1e+20.
+# scale factor. The default value is 1e+20. If a value less
+# than 1.0 is provided, it will be set to 1.0.
 
-OPTSCALE
 #OPTSCALE-MAX-FACTOR 1e+20
+
+# To use the original Algencan, i.e., without scaling the final
+# solution, uncomment the line below.
+
+#NON-SCALED-OPTIMALITY
