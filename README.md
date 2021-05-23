@@ -1,6 +1,6 @@
 # Scaled Algencan
 
-[Algencan](https://www.ime.usp.br/~egbirgin/tango/codes.php) is an augmented Lagrangian solver written by E. Birgin and J.M. Martínez. It is available under the GNU General Public License.
+[Algencan](https://www.ime.usp.br/~egbirgin/tango/codes.php) is a safeguarded augmented Lagrangian solver written by E. Birgin and J.M. Martínez. It is available under the GNU General Public License.
 
 **Scaled Algencan** is a modification of Algencan that implements the additional option of scaling the final solution, as described in
 
