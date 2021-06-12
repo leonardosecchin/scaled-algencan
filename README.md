@@ -24,7 +24,7 @@ All the code are generated from the original Algencan 3.1.1 code. To do so, foll
 
 ## Support for HSL packages
 
-Algencan 3.1.1 supports [HSL](http://www.hsl.rl.ac.uk) MA57/MA86/MA97 packages. In order to use/compile them, the user needs to get they by yourself from <http://www.hsl.rl.ac.uk/catalogue>. HSL packages are available at no cost for personal academic research and teaching, see <http://www.hsl.rl.ac.uk/licencing.html> for more information.
+Algencan 3.1.1 supports [HSL](http://www.hsl.rl.ac.uk) MA57/MA86/MA97 packages. To use/compile them, you need to get them yourself from <http://www.hsl.rl.ac.uk/catalogue>. HSL packages are available at no cost for personal academic research and teaching, see <http://www.hsl.rl.ac.uk/licencing.html> for more information.
 
 **Scaled Algencan** was tested with the following packages:
 
