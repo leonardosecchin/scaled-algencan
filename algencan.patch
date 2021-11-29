@@ -1,6 +1,6 @@
 diff -ruN ../algencan-3.1.1/Makefile ./Makefile
 --- ../algencan-3.1.1/Makefile	2017-03-10 16:25:44.000000000 -0300
-+++ ./Makefile	2021-05-01 13:01:54.043130594 -0300
++++ ./Makefile	2021-11-28 20:44:00.317124984 -0300
 @@ -5,21 +5,30 @@
  # case.
  AR := ar
@@ -88,7 +88,7 @@ diff -ruN ../algencan-3.1.1/Makefile ./Makefile
  all: algencan
  
  algencan: hsl
-@@ -70,16 +61,18 @@
+@@ -70,16 +61,24 @@
  algencan-%: algencan
  	$(MAKE) -C $(INTERSRC)/$* all install
  
@@ -99,6 +99,12 @@ diff -ruN ../algencan-3.1.1/Makefile ./Makefile
 +
 +metis:
 +	(cd $(METIS) && ./compile)
++
++sharedlib: algencan
++	gfortran -shared -o $(LIB)/libalgencan.so -Wl,--whole-archive $(LIB)/libalgencan.a -Wl,--no-whole-archive,--allow-multiple-definition -l gfortran -lblas -llapack
++	@echo "-------------------"
++	@echo "Shared lib created in $(LIB)"
++	@echo "-------------------"
  
  clean:
  	$(MAKE) -C $(ALGSRC) clean

@@ -92,6 +92,15 @@ from the folder where `algencan.dat` is located, or set `specfnm` to the absolut
 It is possible to adjust the maximum scale factor for optimality using `algencan.dat`. See instructions in the file.
 
 
+### Using Scaled Algencan on Julia
+
+It is possible to use Scaled Algencan with Julia via `NLPModelsAlgencan.jl`, a package maintained by P.J.S. Silva. To do this, you need to create the shared library `libalgencan.so`. Just run
+~~~
+make sharedlib
+~~~
+from `algencan-3.1.1_scaled`. The `libalgencan.so` file will be placed in the `lib` folder. Metis and HSL packages will be automatically incorporated if provided. Finally, follow the instructions on the [`NLPModelsAlgencan.jl` page](https://github.com/pjssilva/NLPModelsAlgencan.jl) to use the compiled shared library.
+
+
 ## Funding
 
 This research was supported by "Fundação de Amparo à Pesquisa e Inovação do Espírito Santo" - FAPES (grant 116/2019) - and FAPESP.
