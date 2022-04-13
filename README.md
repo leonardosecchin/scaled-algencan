@@ -111,8 +111,8 @@ This research was supported by "Fundação de Amparo à Pesquisa e Inovação do
 If you use this code in your publications, please cite us:
 
 > [R. Andreani, G. Haeser, M.L. Schuverdt, L.D. Secchin, P.J.S. Silva. On scaled stopping criteria for a safeguarded augmented
-Lagrangian method with theoretical guarantees. Mathematical Programming Computation, 2021.](https://doi.org/10.1007/s12532-021-00207-9)
+Lagrangian method with theoretical guarantees. Mathematical Programming Computation, 14:121-146, 2022.](https://doi.org/10.1007/s12532-021-00207-9)
 
 Also, consider citing the Algencan's original reference:
 
-> R. Andreani, E. G. Birgin, J. M. Martínez and M. L. Schuverdt, "On Augmented Lagrangian methods with general lower-level constraints", SIAM Journal on Optimization 18, pp. 1286-1309, 2007.
+> R. Andreani, E. G. Birgin, J. M. Martínez and M. L. Schuverdt, "On Augmented Lagrangian methods with general lower-level constraints", SIAM Journal on Optimization, 18:1286-1309, 2007.
