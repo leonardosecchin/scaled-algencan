@@ -5,7 +5,7 @@
 **Scaled Algencan** is a modification of Algencan that implements the additional option of scaling the final solution, as described in
 
 > [R. Andreani, G. Haeser, M.L. Schuverdt, L.D. Secchin, P.J.S. Silva. On scaled stopping criteria for a safeguarded augmented
-Lagrangian method with theoretical guarantees. Mathematical Programming Computation, 2021.](https://doi.org/10.1007/s12532-021-00207-9)
+Lagrangian method with theoretical guarantees. *Mathematical Programming Computation*, 14:121-146, 2022.](https://doi.org/10.1007/s12532-021-00207-9)
 
 Scaled Algencan was implemented over the Algencan 3.1.1 code.
 
