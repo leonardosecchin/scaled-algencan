@@ -80,6 +80,14 @@ make algencan-cutest PROBNAME=ACOPR57
 ~~~
 from `algencan-3.1.1_scaled`. This will create the executable file `algencan` and the decoded SIF file `OUTSDIF.d` in `algencan-3.1.1_scaled/bin/cutest`.
 
+### Compiling Scaled Algencan for Julia
+
+It is possible to use Scaled Algencan with Julia via `NLPModelsAlgencan.jl`, a package maintained by P.J.S. Silva. To do this, you need to create the shared library `libalgencan.so`. Just run
+~~~
+make sharedlib
+~~~
+from `algencan-3.1.1_scaled`. The `libalgencan.so` file will be placed in the `lib` folder. Metis and HSL packages will be automatically incorporated if provided. Finally, follow the instructions on the [`NLPModelsAlgencan.jl` page](https://github.com/pjssilva/NLPModelsAlgencan.jl) to use the compiled shared library.
+
 
 ## Usage
 
@@ -87,18 +95,17 @@ from `algencan-3.1.1_scaled`. This will create the executable file `algencan` an
 ~~~
 algencan problem.nl specfnm="algencan.dat"
 ~~~
-from the folder where `algencan.dat` is located, or set `specfnm` to the absolute/relative path of `algencan.dat`.
+from the folder where `algencan.dat` is located, or set `specfnm` to the absolute/relative path of `algencan.dat`. If you are calling Scaled Algencan from Julia, run
+~~~
+julia> algencan(nlp, specfnm="algencan.dat")
+~~~
+where `nlp` is the `NLPModels` structure of the problem to be solved.
 
 It is possible to adjust the maximum scale factor for optimality using `algencan.dat`. See instructions in the file.
 
+You can set all the usual Algencan parameters in `algencan.dat`. See chapter 10 of the [book by E. Birgin and J.M. Martínez](https://doi.org/10.1137/1.9781611973365) for details.
 
-### Using Scaled Algencan on Julia
-
-It is possible to use Scaled Algencan with Julia via `NLPModelsAlgencan.jl`, a package maintained by P.J.S. Silva. To do this, you need to create the shared library `libalgencan.so`. Just run
-~~~
-make sharedlib
-~~~
-from `algencan-3.1.1_scaled`. The `libalgencan.so` file will be placed in the `lib` folder. Metis and HSL packages will be automatically incorporated if provided. Finally, follow the instructions on the [`NLPModelsAlgencan.jl` page](https://github.com/pjssilva/NLPModelsAlgencan.jl) to use the compiled shared library.
+In the AMPL and Julia interfaces, several parameters can be passed diretcly from the command line. To see a list of them, run the AMPL interface with `-=` option (`bin/ampl/algencan -=`).
 
 
 ## Funding
