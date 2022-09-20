@@ -105,7 +105,7 @@ It is possible to adjust the maximum scale factor for optimality using `algencan
 
 You can set all the usual Algencan parameters in `algencan.dat`. See chapter 10 of the [book by E. Birgin and J.M. Martínez](https://doi.org/10.1137/1.9781611973365) for details.
 
-In the AMPL and Julia interfaces, several parameters can be passed diretcly from the command line. To see a list of them, run the AMPL interface with `-=` option (`bin/ampl/algencan -=`).
+In the AMPL and Julia interfaces, several parameters can be passed diretcly from the command line. To see a list of them, run the AMPL interface with `-=` option (`bin/ampl/algencan -=`). You can also see [this link](https://pjssilva.github.io/NLPModelsAlgencan.jl/dev/parameters/).
 
 
 ## Funding
