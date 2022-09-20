@@ -28,13 +28,13 @@ Algencan 3.1.1 supports [HSL](http://www.hsl.rl.ac.uk) MA57/MA86/MA97 packages. 
 
 **Scaled Algencan** was tested with the following packages:
 
-- HSL MA57 version 5.2.0
-- HSL MA86 version 1.6.0
-- HSL MA97 version 2.5.0
+- HSL MA57 version [5.2.0](https://www.hsl.rl.ac.uk/download/HSL_MA57/5.2.0/)
+- HSL MA86 version [1.6.0](https://www.hsl.rl.ac.uk/download/HSL_MA86/1.6.0/)
+- HSL MA97 version [2.5.0](https://www.hsl.rl.ac.uk/download/HSL_MA97/2.5.0/)
 
 To use them, put the downloaded files `hsl_ma57-5.2.0.tar.gz`, `hsl_ma86-1.6.0.tar.gz` and `hsl_ma97-2.5.0.tar.gz` in the `hsl` directory. **Do NOT extract them**.
 
-*HSL packages are not mandatory for (scaled) Algencan. However, their use is recommended.*
+*HSL packages are not mandatory for (scaled) Algencan. However, their use is recommended. Other/Newer versions of HSL_MA57 probably DO NOT WORK.*
 
 
 ## Support for the Metis package
@@ -44,7 +44,7 @@ To use them, put the downloaded files `hsl_ma57-5.2.0.tar.gz`, `hsl_ma86-1.6.0.t
 1. Download `metis-4.0.3.tar.gz` from <http://glaros.dtc.umn.edu/gkhome/fsroot/sw/metis/OLD>;
 1. Put `metis-4.0.3.tar.gz` in the `metis` directory. **Do NOT extract it**.
 
-*Metis is not mandatory for HSL packages. However, its use is recommended.*
+*Metis is recommended for HSL packages. It may be required for the correct compilation of the HSL libraries.*
 
 
 ## Compilation
@@ -54,6 +54,8 @@ The Scaled Algencan `Makefile` is prepared to unpack and compile HSL and Metis p
 BLAS routines must be provided. The script is prepared to use the native [OpenBLAS](https://www.openblas.net) package. Other/Specific BLAS implementations can be used. In this case, the `BLAS` variable in the `hsl/compile` file must be adjusted accordingly. Indeed, vendor-specific implementations may be recommended for best performance.
 
 All instructions contained in the original `README` file of Algencan 3.1.1 remain valid, except for the compilation of BLAS, HSL and Metis packages.
+
+*IMPORTANT: if you have problems compiling Scaled Algencan with HSL, please also provide the Metis 4.0.3 package (actually, it is recommended). See the previous topic.*
 
 ### Compiling Scaled Algencan for AMPL
 
