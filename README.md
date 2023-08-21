@@ -98,22 +98,22 @@ Following the original Algencan instructions, if you use more than one HSL packa
 
 1. Compile using `-zmuldefs` tag
 
-You can avoid compilation errors by using the `-zmuldefs` tag (GNU compilers). From the `algencan-3.1.1_scaled` directory, try
-~~~
-make
-cd sources/examples/f90/
-gfortran -O3 toyprob.f90 -L../../../lib -lalgencan -lm -lopenblas -zmuldefs -o algencan
-~~~
+   You can avoid compilation errors by using the `-zmuldefs` tag (GNU compilers). From the `algencan-3.1.1_scaled` directory, try
+   ~~~
+   make
+   cd sources/examples/f90/
+   gfortran -O3 toyprob.f90 -L../../../lib -lalgencan -lm -lopenblas -zmuldefs -o algencan
+   ~~~
 
 1. Compile using dynamic libraries
 
-From the `algencan-3.1.1_scaled` directory, try
-~~~
-make sharedlib
-cd sources/examples/f90/
-gfortran -O3 toyprob.f90 -L../../../lib -lalgencan -o algencan
-~~~
-To run the compiled executable `algencan`, you first need to put the path `[SCALED-ALGENCAN path]/lib` in the environment variable `LD_LIBRARY_PATH` or equivalent.
+   From the `algencan-3.1.1_scaled` directory, try
+   ~~~
+   make sharedlib
+   cd sources/examples/f90/
+   gfortran -O3 toyprob.f90 -L../../../lib -lalgencan -o algencan
+   ~~~
+   To run the compiled executable `algencan`, you first need to put the path `[SCALED-ALGENCAN path]/lib` in the environment variable `LD_LIBRARY_PATH` or equivalent.
 
 
 ## Usage
