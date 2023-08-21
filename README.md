@@ -92,28 +92,28 @@ from `algencan-3.1.1_scaled`. The `libalgencan.so` file will be placed in the `l
 
 ### Compiling your own C/Fortran code
 
-As with Algencan, you can integrate Scaled Algencan with your C/Fortran code. As a reference, consider the `toyprob.f90` file located at `sources/examples/f90/`. The procedure for C codes is analogous.
+As with Algencan, you can integrate Scaled Algencan with your C/Fortran code. As a reference, consider the `toyprob.f90` file located at `sources/examples/f90/`. The procedures for C codes are analogous, you just need to include the `-lgfortran` tag when using static libraries with `gcc`.
 
-If you use more than one HSL package, you will encounter "multiple definitions" errors when compiling using static libraries. This is because certain internal HSL functions appear repeated within `hsl_ma57-5.2.0.tar.gz`, `hsl_ma86-1.6.0.tar.gz` and `hsl_ma97-2.5.0.tar.gz`. There are at least two solutions:
+Following the original Algencan instructions, if you use more than one HSL package you will encounter "multiple definitions" errors when compiling using static libraries. This is because certain internal HSL functions appear repeated within `hsl_ma57-5.2.0.tar.gz`, `hsl_ma86-1.6.0.tar.gz` and `hsl_ma97-2.5.0.tar.gz`. There are at least two solutions:
 
-1. Compile using dynamic library
+1. Compile using `-zmuldefs` tag
 
-This method allows multiple HSL packages. From the `algencan-3.1.1_scaled` directory, try
+You can avoid compilation errors by using the `-zmuldefs` tag (GNU compilers). From the `algencan-3.1.1_scaled` directory, try
+~~~
+make
+cd sources/examples/f90/
+gfortran -O3 toyprob.f90 -L../../../lib -lalgencan -lm -lopenblas -zmuldefs -o algencan
+~~~
+
+1. Compile using dynamic libraries
+
+From the `algencan-3.1.1_scaled` directory, try
 ~~~
 make sharedlib
 cd sources/examples/f90/
 gfortran -O3 toyprob.f90 -L../../../lib -lalgencan -o algencan
 ~~~
 To run the compiled executable `algencan`, you first need to put the path `[SCALED-ALGENCAN path]/lib` in the environment variable `LD_LIBRARY_PATH` or equivalent.
-
-1. Use only one HSL package
-
-If you want to compile your code using static libraries, you can avoid compilation errors by using only one HSL package instead of multiple ones. For general use, we recommend MA57; in this case, just put `hsl_ma57-5.2.0.tar.gz` in the `hsl` directory. Then from the `algencan-3.1.1_scaled` directory, try
-~~~
-make
-cd sources/examples/f90/
-gfortran -O3 toyprob.f90 -L../../../lib -lalgencan -lm -lopenblas -o algencan
-~~~
 
 
 ## Usage
