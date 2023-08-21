@@ -1,5 +1,6 @@
 All instructions contained in the original README file of Algencan 3.1.1
-remain valid, except for the compilation of BLAS, HSL and Metis packages.
+remain valid, except for the compilation of BLAS, HSL and Metis packages,
+and the compilation of C/Fortran examples.
 
 The modified Makefile was developed to unpack and compile the HSL and Metis
 packages if they are provided by the user. BLAS routines must be present.

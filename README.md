@@ -32,7 +32,7 @@ Algencan 3.1.1 supports [HSL](http://www.hsl.rl.ac.uk) MA57/MA86/MA97 packages. 
 - HSL MA86 version [1.6.0](https://www.hsl.rl.ac.uk/download/HSL_MA86/1.6.0/)
 - HSL MA97 version [2.5.0](https://www.hsl.rl.ac.uk/download/HSL_MA97/2.5.0/)
 
-To use them, put the downloaded files `hsl_ma57-5.2.0.tar.gz`, `hsl_ma86-1.6.0.tar.gz` and `hsl_ma97-2.5.0.tar.gz` in the `hsl` directory. **Do NOT extract them**.
+To use them, put the downloaded files `hsl_ma57-5.2.0.tar.gz`, `hsl_ma86-1.6.0.tar.gz` and/or `hsl_ma97-2.5.0.tar.gz` in the `hsl` directory. **Do NOT extract them**. Note that you can use just one or multiple HSL packages simultaneously.
 
 *HSL packages are not mandatory for (scaled) Algencan. However, their use is recommended. Other/Newer versions of HSL_MA57 probably DO NOT WORK.*
 
@@ -90,10 +90,35 @@ make sharedlib
 ~~~
 from `algencan-3.1.1_scaled`. The `libalgencan.so` file will be placed in the `lib` folder. Metis and HSL packages will be automatically incorporated if provided. Finally, follow the instructions on the [`NLPModelsAlgencan.jl` page](https://github.com/pjssilva/NLPModelsAlgencan.jl) to use the compiled shared library.
 
+### Compiling your own C/Fortran code
+
+As with Algencan, you can integrate Scaled Algencan with your C/Fortran code. As a reference, consider the `toyprob.f90` file located at `sources/examples/f90/`. The procedure for C codes is analogous.
+
+If you use more than one HSL package, you will encounter "multiple definitions" errors when compiling using static libraries. This is because certain internal HSL functions appear repeated within `hsl_ma57-5.2.0.tar.gz`, `hsl_ma86-1.6.0.tar.gz` and `hsl_ma97-2.5.0.tar.gz`. There are at least two solutions:
+
+1. Compile using dynamic library
+
+This method allows multiple HSL packages. From the `algencan-3.1.1_scaled` directory, try
+~~~
+make sharedlib
+cd sources/examples/f90/
+gfortran -O3 toyprob.f90 -L../../../lib -lalgencan -o algencan
+~~~
+To run the compiled executable `algencan`, you first need to put the path `[SCALED-ALGENCAN path]/lib` in the environment variable `LD_LIBRARY_PATH` or equivalent.
+
+1. Use only one HSL package
+
+If you want to compile your code using static libraries, you can avoid compilation errors by using only one HSL package instead of multiple ones. For general use, we recommend MA57; in this case, just put `hsl_ma57-5.2.0.tar.gz` in the `hsl` directory. Then from the `algencan-3.1.1_scaled` directory, try
+~~~
+make
+cd sources/examples/f90/
+gfortran -O3 toyprob.f90 -L../../../lib -lalgencan -lm -lopenblas -o algencan
+~~~
+
 
 ## Usage
 
-**The scaled stopping criterion is enabled by default.** To run Algencan without it, call the algorithm with the `NON-SCALED-OPTIMALITY` flag. To do this, adjust the `algencan.dat` file accordingly. For the CUTEst interface, just copy this file to the same folder as the Scaled Algencan executable file. For AMPL interface, run
+**The scaled stopping criterion is enabled by default.** To run Algencan without it, call the algorithm with the `NON-SCALED-OPTIMALITY` flag. To do this, adjust the `algencan.dat` file accordingly. For the CUTEst interface and your own C/Fortran code, just copy this file to the same folder as the Scaled Algencan executable file. For AMPL interface, run
 ~~~
 algencan problem.nl specfnm="algencan.dat"
 ~~~
